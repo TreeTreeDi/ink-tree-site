@@ -106,8 +106,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
     <main className="tree-page" aria-label="Interactive ink tree home">
       <div ref={hostRef} className="tree-canvas-host" />
 
-      {/* Synchronized keyboard & screen-reader interactive hit targets */}
-      <div className="tree-hit-layer">
+      {/* Synchronized clickable, keyboard & screen-reader interactive hit targets */}
+      <nav className="tree-hit-layer" aria-label="Site branches">
         {hitTargets.map((t) => {
           const style: React.CSSProperties = {
             left: `${t.x - t.w * 0.5}px`,
@@ -126,6 +126,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 target={isExt && t.href?.startsWith('http') ? '_blank' : undefined}
                 rel={isExt && t.href?.startsWith('http') ? 'noopener noreferrer' : undefined}
                 aria-label={t.label}
+                onMouseEnter={() => sceneRef.current?.setExternalHover(t.id)}
+                onMouseLeave={() => sceneRef.current?.setExternalHover(null)}
                 onFocus={() => sceneRef.current?.setExternalHover(t.id)}
                 onBlur={() => sceneRef.current?.setExternalHover(null)}
                 onClick={(e) => {
@@ -134,7 +136,9 @@ export function HomePage({ onNavigate }: HomePageProps) {
                     onNavigate(t.href);
                   }
                 }}
-              />
+              >
+                {t.text}
+              </a>
             );
           }
           return (
@@ -145,82 +149,47 @@ export function HomePage({ onNavigate }: HomePageProps) {
               style={style}
               aria-label={t.label}
               aria-expanded={t.branchId ? activeBranch === t.branchId : undefined}
+              onMouseEnter={() => sceneRef.current?.setExternalHover(t.id)}
+              onMouseLeave={() => sceneRef.current?.setExternalHover(null)}
               onFocus={() => sceneRef.current?.setExternalHover(t.id)}
               onBlur={() => sceneRef.current?.setExternalHover(null)}
               onClick={() => handleTargetActivate(t)}
-            />
+            >
+              {t.text}
+            </button>
           );
         })}
-      </div>
-
-      {/* Offscreen semantic mirror for crawlers and screen readers */}
-      <nav className="sr-only" aria-label="Site structure">
-        <h2>Branches</h2>
-        <ul>
-          <li>
-            <button type="button" onClick={() => sceneRef.current?.selectBranch('me')}>
-              me
-            </button>
-            <div>
-              {BIO_PARAGRAPHS.map((p) => (
-                <p key={p.id}>{p.segments.map((s) => s.text).join('')}</p>
-              ))}
-            </div>
-          </li>
-          <li>
-            <button type="button" onClick={() => sceneRef.current?.selectBranch('writing')}>
-              writing
-            </button>
-            <ul>
-              {WRITING_POSTS.map((w) => (
-                <li key={w.id}>
-                  <a
-                    href={w.route}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onNavigate(w.route);
-                    }}
-                  >
-                    {w.label} — {w.dateLabel}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </li>
-          <li>
-            <button type="button" onClick={() => sceneRef.current?.selectBranch('updates')}>
-              updates
-            </button>
-            <ul>
-              {UPDATE_ENTRIES.map((u) => (
-                <li key={u.id}>
-                  <a
-                    href={u.route}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onNavigate(u.route);
-                    }}
-                  >
-                    {u.label} ({u.dateISO})
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </li>
-          <li>
-            <button type="button" onClick={() => sceneRef.current?.selectBranch('work')}>
-              work with me
-            </button>
-            <ul>
-              {WORK_LINKS.map((wl) => (
-                <li key={wl.id}>
-                  <a href={wl.href}>{wl.label}</a>
-                </li>
-              ))}
-            </ul>
-          </li>
-        </ul>
       </nav>
+
+      {/* Offscreen semantic text summary for screen readers & crawlers (no duplicate buttons) */}
+      <section className="sr-only" aria-label="Site overview">
+        <h2>About</h2>
+        {BIO_PARAGRAPHS.map((p) => (
+          <p key={p.id}>{p.segments.map((s) => s.text).join('')}</p>
+        ))}
+        <h2>Writing</h2>
+        <ul>
+          {WRITING_POSTS.map((w) => (
+            <li key={w.id}>
+              {w.label} — {w.dateLabel}
+            </li>
+          ))}
+        </ul>
+        <h2>Updates</h2>
+        <ul>
+          {UPDATE_ENTRIES.map((u) => (
+            <li key={u.id}>
+              {u.label} ({u.dateISO})
+            </li>
+          ))}
+        </ul>
+        <h2>Work</h2>
+        <ul>
+          {WORK_LINKS.map((wl) => (
+            <li key={wl.id}>{wl.label}</li>
+          ))}
+        </ul>
+      </section>
 
       <div className="sr-only" role="status" aria-live="polite">
         {announcement}
