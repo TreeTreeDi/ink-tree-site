@@ -211,7 +211,7 @@ export function buildCanopyGeometry(blobs: CanopyBlob[]): THREE.BufferGeometry {
 }
 
 /**
- * Generates an organic multi-lobe cloud mass of blobs around (cx, cy).
+ * Generates an asymmetrical multi-lobe cloud mass with varied radii and outer fragments.
  */
 export function generateCanopyCluster(
   cx: number,
@@ -223,22 +223,38 @@ export function generateCanopyCluster(
 ): CanopyBlob[] {
   const rng = createRng(seed);
   const blobs: CanopyBlob[] = [];
-  // Offset anchor blob slightly so cloud clusters stay asymmetrical & full
+  // Offset core anchor blob asymmetrically
   blobs.push({
-    cx: cx + (rng() - 0.5) * rx * 0.22,
-    cy: cy + (rng() - 0.5) * ry * 0.20,
-    rx: rx * 0.72,
-    ry: ry * 0.74,
+    cx: cx + (rng() - 0.5) * rx * 0.34,
+    cy: cy + (rng() - 0.5) * ry * 0.30,
+    rx: rx * (0.58 + rng() * 0.28),
+    ry: ry * (0.58 + rng() * 0.28),
     seed: rng(),
   });
   for (let i = 0; i < lobeCount; i++) {
-    const angle = (i / lobeCount) * Math.PI * 2 + (rng() - 0.5) * 0.55;
-    const dist = 0.28 + rng() * 0.36;
+    const angle = (i / lobeCount) * Math.PI * 2 + (rng() - 0.5) * 0.92;
+    const dist = 0.22 + rng() * 0.52;
     const lx = cx + Math.cos(angle) * rx * dist;
     const ly = cy + Math.sin(angle) * ry * dist;
-    const lrx = rx * (0.44 + rng() * 0.28);
-    const lry = ry * (0.42 + rng() * 0.30);
+    const sizeScale = 0.36 + rng() * 0.54;
+    const lrx = rx * sizeScale * (0.85 + rng() * 0.35);
+    const lry = ry * sizeScale * (0.82 + rng() * 0.36);
     blobs.push({ cx: lx, cy: ly, rx: lrx, ry: lry, seed: rng() });
+  }
+  // Small edge protrusions & satellite fragments breaking up smooth silhouettes
+  const fragCount = 2 + Math.floor(rng() * 3);
+  for (let f = 0; f < fragCount; f++) {
+    const angle = rng() * Math.PI * 2;
+    const dist = 0.78 + rng() * 0.34;
+    const fx = cx + Math.cos(angle) * rx * dist;
+    const fy = cy + Math.sin(angle) * ry * dist;
+    blobs.push({
+      cx: fx,
+      cy: fy,
+      rx: rx * (0.14 + rng() * 0.16),
+      ry: ry * (0.14 + rng() * 0.16),
+      seed: rng(),
+    });
   }
   return blobs;
 }

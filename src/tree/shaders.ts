@@ -244,6 +244,7 @@ uniform float uProgress;
 uniform float uOpacity;
 uniform vec3 uInkColor;
 uniform float uDensity;
+uniform float uPixelRatio;
 ${GLSL_NOISE}
 
 void main() {
@@ -252,38 +253,48 @@ void main() {
   float r = length(vLocal);
   if (r > 1.0) discard;
 
-  float ang = atan(vLocal.y, vLocal.x);
-  // Lumpy cloud outline lobes
-  float lump =
-    (vnoise(vec2(cos(ang) * 2.4 + vSeed * 11.3, sin(ang) * 2.4 + vSeed * 7.1)) - 0.5) * 0.30 +
-    (vnoise(vec2(cos(ang) * 5.2 + vSeed * 3.7, sin(ang) * 5.2 + vSeed * 9.9)) - 0.5) * 0.12;
+  float dpr = max(1.0, uPixelRatio);
+  vec2 grainCoord = vWorld * dpr;
 
-  float macro = fbm(vWorld * 0.07 + vec2(vSeed * 13.7, vSeed * 5.3));
-  float midGrain = vnoise(vWorld * 0.42 + vec2(vSeed * 4.1, vSeed * 8.9));
-  float stipple = vnoise(vWorld * 1.12);
-  float speckle = hash21(floor(vWorld * 0.92));
+  float ang = atan(vLocal.y, vLocal.x);
+  // Asymmetrical lumpy outline + high-frequency edge protrusions & fragments
+  float lump =
+    (vnoise(vec2(cos(ang) * 2.6 + vSeed * 11.3, sin(ang) * 2.6 + vSeed * 7.1)) - 0.5) * 0.36 +
+    (vnoise(vec2(cos(ang) * 6.4 + vSeed * 3.7, sin(ang) * 6.4 + vSeed * 9.9)) - 0.5) * 0.22 +
+    (vnoise(vec2(cos(ang) * 12.0 + vSeed * 19.1, sin(ang) * 12.0 + vSeed * 23.3)) - 0.5) * 0.14;
+
+  float macro = fbm(vWorld * 0.065 + vec2(vSeed * 13.7, vSeed * 5.3));
+  float midGrain = vnoise(vWorld * 0.36 + vec2(vSeed * 4.1, vSeed * 8.9));
+  float stipple = vnoise(grainCoord * 1.15);
+  float speckle = hash21(floor(grainCoord * 0.94));
 
   float scale = mix(0.20, 1.0, smoothstep(0.0, 1.0, uProgress));
-  float effectiveR = r / scale + lump * 0.52;
+  float effectiveR = r / scale + lump * 0.56;
 
-  // Sparse interior voids & crevices so trunk/paper show at coves while clouds stay ~85% solid
-  float innerVoid = smoothstep(0.68, 0.84, macro * 0.65 + midGrain * 0.35);
-  float edgeBreak = (macro - 0.5) * 0.32 + (midGrain - 0.5) * 0.22 + (stipple - 0.5) * 0.16;
+  // Larger interior dark holes inside thick clusters so paper & trunk peek through
+  float bigVoidNoise = fbm(vWorld * 0.036 + vec2(vSeed * 11.7, vSeed * 17.3));
+  float innerZone = 1.0 - smoothstep(0.28, 0.72, r);
+  float bigVoid = smoothstep(0.57, 0.71, bigVoidNoise) * innerZone;
+  float innerVoid = smoothstep(0.66, 0.83, macro * 0.65 + midGrain * 0.35);
 
-  float field = effectiveR + edgeBreak + innerVoid * 0.42;
+  float edgeBreak = (macro - 0.5) * 0.36 + (midGrain - 0.5) * 0.28 + (stipple - 0.5) * 0.16;
+
+  float field = effectiveR + edgeBreak + innerVoid * 0.42 + bigVoid * 0.78;
   float thresh = mix(0.72, 0.88, uDensity);
 
-  // High-contrast screen-print threshold: solid ~85% core with crisp dithered edge rim
-  float rimZone = smoothstep(thresh - 0.18, thresh + 0.04, field);
-  float ditherCut = mix(0.03, 0.82, rimZone);
+  // High-contrast screen-print threshold: solid ~82-85% core with fragmented dithered rim
+  float rimZone = smoothstep(thresh - 0.20, thresh + 0.06, field);
+  float ditherCut = mix(0.03, 0.84, rimZone);
   float dotHit = step(ditherCut, stipple * 0.55 + speckle * 0.45);
 
-  if (field > thresh + 0.05 || dotHit < 0.5) {
+  if (field > thresh + 0.06 || dotHit < 0.5 || bigVoid > 0.58) {
     discard;
   }
 
-  // Coarse small dark ink-void pinholes (~10-14% interior breakup like silkscreen)
-  if (speckle < 0.055 || (midGrain > 0.74 && speckle < 0.22)) {
+  // DPR-balanced silkscreen pinholes so 2x mobile keeps crisp fine texture without oversized black blobs
+  float fineHoleThresh = dpr > 1.3 ? 0.028 : 0.048;
+  float clusterHoleThresh = dpr > 1.3 ? 0.11 : 0.19;
+  if (speckle < fineHoleThresh || (midGrain > 0.76 && speckle < clusterHoleThresh)) {
     discard;
   }
 

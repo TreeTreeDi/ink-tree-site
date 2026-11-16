@@ -342,6 +342,7 @@ export class InkTreeScene {
           uInkColor: { value: INK_COLOR },
           uSwayAmp: { value: opts?.swayAmp ?? 0.9 },
           uDensity: { value: opts?.density ?? 0.65 },
+          uPixelRatio: { value: this.pixelRatio },
           uReducedMotion: { value: this.reducedMotion ? 1 : 0 },
         },
       }),
@@ -411,30 +412,36 @@ export class InkTreeScene {
     trunkMesh.position.z = 2.0;
     this.treeGroup.add(trunkMesh);
 
-    // 2. Main Canopy (8-9 wide, solid S-curve staggered cloud layers so coves, holes & trunk peek through)
+    // 2. Main Canopy (asymmetrical varied-radius 0.5-1.3 cloud layers with random offsets, protrusions & dark holes)
     const canopySpanY = canopyTopY - canopyBottomY;
-    const canopyRx = mobile ? 60 : Math.min(126, W * 0.088);
+    const canopyRx = mobile ? 56 : Math.min(118, W * 0.082);
     const clusterDefs = mobile
       ? [
-          { yT: 0.93, dx: 9, rx: 0.56, ry: 0.090, lobes: 6, layer: 'front' },
-          { yT: 0.82, dx: -16, rx: 0.64, ry: 0.096, lobes: 6, layer: 'back' },
-          { yT: 0.70, dx: 24, rx: 0.72, ry: 0.104, lobes: 7, layer: 'front' },
-          { yT: 0.57, dx: -25, rx: 0.76, ry: 0.112, lobes: 7, layer: 'front' },
-          { yT: 0.44, dx: 25, rx: 0.74, ry: 0.106, lobes: 7, layer: 'back' },
-          { yT: 0.33, dx: -22, rx: 0.70, ry: 0.102, lobes: 6, layer: 'front' },
-          { yT: 0.21, dx: 19, rx: 0.64, ry: 0.096, lobes: 6, layer: 'back' },
-          { yT: 0.09, dx: -11, rx: 0.54, ry: 0.086, lobes: 5, layer: 'front' },
+          { yT: 0.95, dx: 14, rx: 0.52, ry: 0.072, lobes: 5, layer: 'front' },
+          { yT: 0.87, dx: -11, rx: 0.88, ry: 0.115, lobes: 7, layer: 'back' },
+          { yT: 0.77, dx: -24, rx: 0.64, ry: 0.088, lobes: 6, layer: 'front' },
+          { yT: 0.69, dx: 26, rx: 0.96, ry: 0.122, lobes: 7, layer: 'front' },
+          { yT: 0.58, dx: -8, rx: 0.50, ry: 0.070, lobes: 5, layer: 'back' },
+          { yT: 0.51, dx: -27, rx: 0.84, ry: 0.118, lobes: 7, layer: 'front' },
+          { yT: 0.40, dx: 22, rx: 0.68, ry: 0.095, lobes: 6, layer: 'back' },
+          { yT: 0.32, dx: 12, rx: 0.92, ry: 0.108, lobes: 7, layer: 'front' },
+          { yT: 0.22, dx: -23, rx: 0.62, ry: 0.084, lobes: 6, layer: 'back' },
+          { yT: 0.14, dx: 17, rx: 0.74, ry: 0.096, lobes: 6, layer: 'front' },
+          { yT: 0.05, dx: -7, rx: 0.48, ry: 0.068, lobes: 5, layer: 'back' },
         ]
       : [
-          { yT: 0.94, dx: 12, rx: 0.56, ry: 0.088, lobes: 6, layer: 'front' },
-          { yT: 0.84, dx: -40, rx: 0.66, ry: 0.098, lobes: 7, layer: 'back' },
-          { yT: 0.73, dx: 44, rx: 0.72, ry: 0.104, lobes: 7, layer: 'front' },
-          { yT: 0.61, dx: -46, rx: 0.76, ry: 0.114, lobes: 7, layer: 'front' },
-          { yT: 0.49, dx: 45, rx: 0.75, ry: 0.108, lobes: 7, layer: 'back' },
-          { yT: 0.38, dx: -40, rx: 0.72, ry: 0.104, lobes: 7, layer: 'back' },
-          { yT: 0.27, dx: 42, rx: 0.68, ry: 0.098, lobes: 6, layer: 'front' },
-          { yT: 0.16, dx: -32, rx: 0.64, ry: 0.092, lobes: 6, layer: 'front' },
-          { yT: 0.06, dx: 16, rx: 0.52, ry: 0.082, lobes: 5, layer: 'back' },
+          { yT: 0.96, dx: 22, rx: 0.54, ry: 0.072, lobes: 5, layer: 'front' },
+          { yT: 0.89, dx: -18, rx: 0.94, ry: 0.118, lobes: 7, layer: 'back' },
+          { yT: 0.79, dx: -44, rx: 0.66, ry: 0.084, lobes: 6, layer: 'front' },
+          { yT: 0.71, dx: 48, rx: 1.04, ry: 0.126, lobes: 8, layer: 'front' },
+          { yT: 0.60, dx: -14, rx: 0.48, ry: 0.068, lobes: 5, layer: 'back' },
+          { yT: 0.53, dx: -46, rx: 0.90, ry: 0.120, lobes: 7, layer: 'front' },
+          { yT: 0.43, dx: 36, rx: 0.62, ry: 0.086, lobes: 6, layer: 'back' },
+          { yT: 0.35, dx: 18, rx: 1.08, ry: 0.114, lobes: 8, layer: 'front' },
+          { yT: 0.25, dx: -42, rx: 0.72, ry: 0.094, lobes: 6, layer: 'back' },
+          { yT: 0.17, dx: 32, rx: 0.56, ry: 0.078, lobes: 5, layer: 'front' },
+          { yT: 0.11, dx: -16, rx: 0.82, ry: 0.098, lobes: 6, layer: 'front' },
+          { yT: 0.03, dx: 9, rx: 0.46, ry: 0.066, lobes: 5, layer: 'back' },
         ];
 
     const backBlobs = clusterDefs
