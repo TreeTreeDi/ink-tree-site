@@ -133,12 +133,12 @@ html.is-post-page #root {
   display: flex;
   align-items: flex-end;
   gap: 5px;
-  margin-left: -6px;
-  margin-bottom: 5px;
+  margin-left: 20px;
+  margin-bottom: 6px;
   color: #c4c3cc;
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 500;
-  line-height: 1.28;
+  line-height: 1.24;
   opacity: 0.94;
   letter-spacing: -0.01em;
 }

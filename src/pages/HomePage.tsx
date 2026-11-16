@@ -161,8 +161,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
         })}
       </nav>
 
-      {/* Offscreen semantic text summary for screen readers & crawlers (no duplicate buttons) */}
-      <section className="sr-only" aria-label="Site overview">
+      {/* Offscreen semantic text & link summary for screen readers & crawlers (no duplicate buttons) */}
+      <nav className="sr-only" aria-label="Site overview links">
         <h2>About</h2>
         {BIO_PARAGRAPHS.map((p) => (
           <p key={p.id}>{p.segments.map((s) => s.text).join('')}</p>
@@ -171,7 +171,15 @@ export function HomePage({ onNavigate }: HomePageProps) {
         <ul>
           {WRITING_POSTS.map((w) => (
             <li key={w.id}>
-              {w.label} — {w.dateLabel}
+              <a
+                href={w.route}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate(w.route);
+                }}
+              >
+                {w.label} — {w.dateLabel}
+              </a>
             </li>
           ))}
         </ul>
@@ -179,17 +187,33 @@ export function HomePage({ onNavigate }: HomePageProps) {
         <ul>
           {UPDATE_ENTRIES.map((u) => (
             <li key={u.id}>
-              {u.label} ({u.dateISO})
+              <a
+                href={u.route}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate(u.route);
+                }}
+              >
+                {u.label} ({u.dateISO})
+              </a>
             </li>
           ))}
         </ul>
         <h2>Work</h2>
         <ul>
           {WORK_LINKS.map((wl) => (
-            <li key={wl.id}>{wl.label}</li>
+            <li key={wl.id}>
+              <a
+                href={wl.href}
+                target={wl.href.startsWith('http') ? '_blank' : undefined}
+                rel={wl.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+              >
+                {wl.label}
+              </a>
+            </li>
           ))}
         </ul>
-      </section>
+      </nav>
 
       <div className="sr-only" role="status" aria-live="polite">
         {announcement}
