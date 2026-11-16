@@ -255,8 +255,14 @@ html.is-post-page #root {
 
   .music-caption {
     margin-left: 10px;
-    margin-bottom: 1px;
+    margin-bottom: 2px;
     margin-top: 0;
+    padding: 3px 8px 4px 5px;
+    border-radius: 7px;
+    background: rgba(42, 40, 44, 0.86);
+    text-shadow:
+      0 1px 2px rgba(24, 22, 26, 0.96),
+      0 0 6px rgba(42, 40, 44, 0.96);
     gap: 4px;
     font-size: 11.5px;
     line-height: 1.18;
