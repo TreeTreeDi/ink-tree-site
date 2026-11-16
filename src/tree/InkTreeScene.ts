@@ -773,7 +773,7 @@ export class InkTreeScene {
             tipDy: 10,
             thorns: 2,
             seed: 202,
-            cameraTarget: { x: 285, y: 355, zoom: 0.96 },
+            cameraTarget: { x: 278, y: 382, zoom: 0.94 },
           },
           {
             id: 'writing',
@@ -1187,8 +1187,8 @@ export class InkTreeScene {
     childItems: BranchRuntime['childItems'],
   ) {
     // Sweeping curved arch branch rising from main canopy upper-right to x≈65%, y≈30%
-    const spanX = mobile ? 168 : 482;
-    const spanY = mobile ? 255 : 420;
+    const spanX = mobile ? 168 : 480;
+    const spanY = mobile ? 255 : 450;
     const spinePts: Point2D[] = [
       tip,
       { x: tip.x + spanX * 0.14, y: tip.y + spanY * 0.36 },
