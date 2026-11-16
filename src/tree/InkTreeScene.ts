@@ -723,7 +723,7 @@ export class InkTreeScene {
             tipDy: 9,
             thorns: 2,
             seed: 202,
-            cameraTarget: { x: 110, y: 175, zoom: 1.08 },
+            cameraTarget: { x: 115, y: 205, zoom: 0.96 },
           },
           {
             id: 'writing',
@@ -773,7 +773,7 @@ export class InkTreeScene {
             tipDy: 10,
             thorns: 2,
             seed: 202,
-            cameraTarget: { x: 245, y: 252, zoom: 1.16 },
+            cameraTarget: { x: 285, y: 355, zoom: 0.96 },
           },
           {
             id: 'writing',
@@ -1186,9 +1186,9 @@ export class InkTreeScene {
     canopyMats: THREE.ShaderMaterial[],
     childItems: BranchRuntime['childItems'],
   ) {
-    // Sweeping curved arch branch rising up-right with 7 tapering clouds (jun 13 close to main canopy -> apr 20 at tip)
-    const spanX = mobile ? 168 : 510;
-    const spanY = mobile ? 230 : 300;
+    // Sweeping curved arch branch rising from main canopy upper-right to x≈65%, y≈30%
+    const spanX = mobile ? 168 : 482;
+    const spanY = mobile ? 255 : 420;
     const spinePts: Point2D[] = [
       tip,
       { x: tip.x + spanX * 0.14, y: tip.y + spanY * 0.36 },
