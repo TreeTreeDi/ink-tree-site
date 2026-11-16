@@ -1,0 +1,22 @@
+README.md
+  h_05f32768e190e9 1-36
+docs/verification.md
+  h_05f32768e190e9 1-45
+src/tree/InkTreeScene.ts
+  h_05f32768e190e9 395,664,735-736,817,819-820,823,834,836-837,849-852,858,876,880,882-883,887,889-890,1004-1005,1016,1019-1022,1038,1116-1117,1121-1122,1133,1136-1139,1165,1217-1218,1259-1261
+src/tree/geometry.ts
+  h_05f32768e190e9 305,313,316,320-321,323,326-331,339,342,344-346
+src/tree/shaders.ts
+  h_05f32768e190e9 378-379,384,387
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b1b6c31ee739564089d2d5107aff4b6532bf594c",
+  "prompts": {},
+  "humans": {
+    "h_05f32768e190e9": {
+      "author": "huaiju <huaiju1210085279@gmail.com>"
+    }
+  }
+}
