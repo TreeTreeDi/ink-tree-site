@@ -1,0 +1,74 @@
+index.html
+  h_05f32768e190e9 1-17
+public/favicon.svg
+  h_05f32768e190e9 1-8
+src/App.tsx
+  h_05f32768e190e9 1-31
+src/audio/synthPlayer.ts
+  h_05f32768e190e9 1-192
+src/components/AbstractStudy.tsx
+  h_05f32768e190e9 1-82
+src/components/BackButton.tsx
+  h_05f32768e190e9 1-35
+src/components/MusicWidget.tsx
+  h_05f32768e190e9 1-142
+src/content/blog/placeholder-post.mdx
+  h_05f32768e190e9 1-16
+src/content/registry.ts
+  h_05f32768e190e9 1-37
+src/content/updates/2026-04-20.mdx
+  h_05f32768e190e9 1-8
+src/content/updates/2026-04-21.mdx
+  h_05f32768e190e9 1-8
+src/content/updates/2026-04-22.mdx
+  h_05f32768e190e9 1-8
+src/content/updates/2026-04-23.mdx
+  h_05f32768e190e9 1-12
+src/content/updates/2026-04-28.mdx
+  h_05f32768e190e9 1-8
+src/content/updates/2026-05-10.mdx
+  h_05f32768e190e9 1-12
+src/content/updates/2026-06-13.mdx
+  h_05f32768e190e9 1-15
+src/data/siteContent.ts
+  h_05f32768e190e9 1-238
+src/index.css
+  h_05f32768e190e9 1-423
+src/main.tsx
+  h_05f32768e190e9 1-15
+src/pages/HomePage.tsx
+  h_05f32768e190e9 1-233
+src/pages/PostPage.tsx
+  h_05f32768e190e9 1-81
+src/tree/InkTreeScene.ts
+  h_05f32768e190e9 1-1753
+src/tree/geometry.ts
+  h_05f32768e190e9 1-429
+src/tree/proceduralArt.ts
+  h_05f32768e190e9 1-375
+src/tree/rng.ts
+  h_05f32768e190e9 1-50
+src/tree/shaders.ts
+  h_05f32768e190e9 1-421
+src/types/mdx.d.ts
+  h_05f32768e190e9 1-7
+src/types/post.ts
+  h_05f32768e190e9 1-7
+tsconfig.json
+  h_05f32768e190e9 1-20
+tsconfig.tsbuildinfo
+  h_05f32768e190e9 1
+vite.config.ts
+  h_05f32768e190e9 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ac9e689d1498726f25ce518bf95a00ec547dd51b",
+  "prompts": {},
+  "humans": {
+    "h_05f32768e190e9": {
+      "author": "huaiju <huaiju1210085279@gmail.com>"
+    }
+  }
+}
