@@ -15,6 +15,7 @@ import {
   buildWobblyUnderline,
   generateCanopyCluster,
   sampleOrganicPath,
+  type CanopyBlob,
   type Point2D,
 } from './geometry';
 import {
@@ -408,7 +409,7 @@ export class InkTreeScene {
     const H = this.worldH;
 
     // Key landmark coordinates
-    const trunkX = mobile ? 12 : this.toWorldX(0.4);
+    const trunkX = mobile ? 19 : this.toWorldX(0.4);
     const groundY = mobile ? this.toWorldY(0.90) : this.toWorldY(0.942);
     const trunkBaseY = mobile ? groundY - 4 : this.toWorldY(0.968);
     const canopyTopY = mobile ? this.toWorldY(0.105) : this.toWorldY(0.18);
@@ -432,39 +433,43 @@ export class InkTreeScene {
     trunkMesh.position.z = 2.0;
     this.treeGroup.add(trunkMesh);
 
-    // 2. Main Canopy (asymmetrical varied-radius 0.5-1.3 cloud layers with random offsets, protrusions & dark holes)
+    // Precompute branch specs & label/twig clearance zones before generating canopy
+    const branchSpecs = this.computeBranchSpecs(trunkX, mobile);
+
+    // 2. Main Canopy (asymmetrical varied-radius cloud layers, ~14% desktop / ~30% mobile width,
+    // zero blobs in label+8px boxes or outer >=40px of twigs, zero detached fragments)
     const canopySpanY = canopyTopY - canopyBottomY;
-    const canopyRx = mobile ? 56 : Math.min(118, W * 0.082);
+    const canopyRx = mobile ? 42 : Math.min(76, W * 0.053);
     const clusterDefs = mobile
       ? [
-          { yT: 0.95, dx: 14, rx: 0.52, ry: 0.072, lobes: 5, layer: 'front' },
-          { yT: 0.87, dx: -11, rx: 0.88, ry: 0.115, lobes: 7, layer: 'back' },
-          { yT: 0.77, dx: -24, rx: 0.64, ry: 0.088, lobes: 6, layer: 'front' },
-          { yT: 0.69, dx: 26, rx: 0.96, ry: 0.122, lobes: 7, layer: 'front' },
-          { yT: 0.58, dx: -8, rx: 0.50, ry: 0.070, lobes: 5, layer: 'back' },
-          { yT: 0.51, dx: -27, rx: 0.84, ry: 0.118, lobes: 7, layer: 'front' },
-          { yT: 0.40, dx: 22, rx: 0.68, ry: 0.095, lobes: 6, layer: 'back' },
-          { yT: 0.32, dx: 12, rx: 0.92, ry: 0.108, lobes: 7, layer: 'front' },
-          { yT: 0.22, dx: -23, rx: 0.62, ry: 0.084, lobes: 6, layer: 'back' },
-          { yT: 0.14, dx: 17, rx: 0.74, ry: 0.096, lobes: 6, layer: 'front' },
-          { yT: 0.05, dx: -7, rx: 0.48, ry: 0.068, lobes: 5, layer: 'back' },
+          { yT: 0.93, dx: 9, rx: 0.50, ry: 0.068, lobes: 5, layer: 'front' as const },
+          { yT: 0.86, dx: -4, rx: 0.80, ry: 0.108, lobes: 7, layer: 'back' as const },
+          { yT: 0.77, dx: -13, rx: 0.60, ry: 0.086, lobes: 6, layer: 'front' as const },
+          { yT: 0.69, dx: 15, rx: 0.92, ry: 0.118, lobes: 7, layer: 'front' as const },
+          { yT: 0.58, dx: -5, rx: 0.52, ry: 0.072, lobes: 5, layer: 'back' as const },
+          { yT: 0.50, dx: -16, rx: 0.84, ry: 0.114, lobes: 7, layer: 'front' as const },
+          { yT: 0.40, dx: 13, rx: 0.68, ry: 0.095, lobes: 6, layer: 'back' as const },
+          { yT: 0.32, dx: 8, rx: 0.90, ry: 0.106, lobes: 7, layer: 'front' as const },
+          { yT: 0.22, dx: -14, rx: 0.62, ry: 0.084, lobes: 6, layer: 'back' as const },
+          { yT: 0.14, dx: 11, rx: 0.72, ry: 0.094, lobes: 6, layer: 'front' as const },
+          { yT: 0.05, dx: -4, rx: 0.50, ry: 0.068, lobes: 5, layer: 'back' as const },
         ]
       : [
-          { yT: 0.96, dx: 22, rx: 0.54, ry: 0.072, lobes: 5, layer: 'front' },
-          { yT: 0.89, dx: -18, rx: 0.94, ry: 0.118, lobes: 7, layer: 'back' },
-          { yT: 0.79, dx: -44, rx: 0.66, ry: 0.084, lobes: 6, layer: 'front' },
-          { yT: 0.71, dx: 48, rx: 1.04, ry: 0.126, lobes: 8, layer: 'front' },
-          { yT: 0.60, dx: -14, rx: 0.48, ry: 0.068, lobes: 5, layer: 'back' },
-          { yT: 0.53, dx: -46, rx: 0.90, ry: 0.120, lobes: 7, layer: 'front' },
-          { yT: 0.43, dx: 36, rx: 0.62, ry: 0.086, lobes: 6, layer: 'back' },
-          { yT: 0.35, dx: 18, rx: 1.08, ry: 0.114, lobes: 8, layer: 'front' },
-          { yT: 0.25, dx: -42, rx: 0.72, ry: 0.094, lobes: 6, layer: 'back' },
-          { yT: 0.17, dx: 32, rx: 0.56, ry: 0.078, lobes: 5, layer: 'front' },
-          { yT: 0.11, dx: -16, rx: 0.82, ry: 0.098, lobes: 6, layer: 'front' },
-          { yT: 0.03, dx: 9, rx: 0.46, ry: 0.066, lobes: 5, layer: 'back' },
+          { yT: 0.94, dx: 12, rx: 0.52, ry: 0.070, lobes: 5, layer: 'front' as const },
+          { yT: 0.87, dx: -10, rx: 0.86, ry: 0.114, lobes: 7, layer: 'back' as const },
+          { yT: 0.78, dx: -24, rx: 0.64, ry: 0.084, lobes: 6, layer: 'front' as const },
+          { yT: 0.70, dx: 26, rx: 0.96, ry: 0.122, lobes: 8, layer: 'front' as const },
+          { yT: 0.60, dx: -8, rx: 0.50, ry: 0.068, lobes: 5, layer: 'back' as const },
+          { yT: 0.52, dx: -26, rx: 0.88, ry: 0.116, lobes: 7, layer: 'front' as const },
+          { yT: 0.42, dx: 20, rx: 0.62, ry: 0.086, lobes: 6, layer: 'back' as const },
+          { yT: 0.34, dx: 10, rx: 0.98, ry: 0.112, lobes: 8, layer: 'front' as const },
+          { yT: 0.24, dx: -24, rx: 0.70, ry: 0.092, lobes: 6, layer: 'back' as const },
+          { yT: 0.17, dx: 18, rx: 0.56, ry: 0.078, lobes: 5, layer: 'front' as const },
+          { yT: 0.11, dx: -10, rx: 0.78, ry: 0.096, lobes: 6, layer: 'front' as const },
+          { yT: 0.04, dx: 5, rx: 0.48, ry: 0.066, lobes: 5, layer: 'back' as const },
         ];
 
-    const backBlobs = clusterDefs
+    const rawBackBlobs = clusterDefs
       .filter((c) => c.layer === 'back')
       .flatMap((c, idx) =>
         generateCanopyCluster(
@@ -476,7 +481,7 @@ export class InkTreeScene {
           300 + idx * 43,
         ),
       );
-    const frontBlobs = clusterDefs
+    const rawFrontBlobs = clusterDefs
       .filter((c) => c.layer === 'front')
       .flatMap((c, idx) =>
         generateCanopyCluster(
@@ -488,6 +493,14 @@ export class InkTreeScene {
           470 + idx * 53,
         ),
       );
+
+    const { backBlobs, frontBlobs } = this.filterCanopyBlobs(
+      rawBackBlobs,
+      rawFrontBlobs,
+      trunkX,
+      branchSpecs,
+      mobile,
+    );
 
     const backCanopyGeo = this.track(buildCanopyGeometry(backBlobs));
     const backCanopyMesh = new THREE.Mesh(
@@ -586,7 +599,7 @@ export class InkTreeScene {
     this.buildDustParticles(W, H);
 
     // 5. Build the 4 top-level interactive branches + child growths
-    this.buildBranches(trunkX, groundY, mobile);
+    this.buildBranches(trunkX, groundY, mobile, branchSpecs);
 
     this.scene.add(this.treeGroup);
 
@@ -684,66 +697,54 @@ export class InkTreeScene {
     };
   }
 
-  private buildBranches(trunkX: number, groundY: number, mobile: boolean) {
+  private computeBranchSpecs(trunkX: number, mobile: boolean) {
     const fontSize = 15;
     const labelGap = 8;
-
-    const specs: Array<{
-      id: BranchId;
-      label: string;
-      side: -1 | 1;
-      y: number;
-      startDx: number;
-      tipDx: number;
-      tipDy: number;
-      thorns: number;
-      seed: number;
-      cameraTarget: { x: number; y: number; zoom: number };
-    }> = mobile
+    const raw = mobile
       ? [
           {
-            id: 'work',
+            id: 'work' as BranchId,
             label: 'work with me',
-            side: -1,
+            side: -1 as const,
             y: this.toWorldY(0.185),
-            startDx: -16,
-            tipDx: -64,
+            startDx: -10,
+            tipDx: -68,
             tipDy: 8,
             thorns: 2,
             seed: 101,
             cameraTarget: { x: -96, y: 148, zoom: 1.04 },
           },
           {
-            id: 'updates',
+            id: 'updates' as BranchId,
             label: 'updates',
-            side: 1,
+            side: 1 as const,
             y: this.toWorldY(0.28),
-            startDx: 18,
-            tipDx: 76,
+            startDx: 12,
+            tipDx: 88,
             tipDy: 9,
             thorns: 2,
             seed: 202,
             cameraTarget: { x: 115, y: 205, zoom: 0.96 },
           },
           {
-            id: 'writing',
+            id: 'writing' as BranchId,
             label: 'writing',
-            side: -1,
+            side: -1 as const,
             y: this.toWorldY(0.39),
-            startDx: -18,
-            tipDx: -84,
+            startDx: -12,
+            tipDx: -88,
             tipDy: 5,
             thorns: 2,
             seed: 303,
             cameraTarget: { x: -82, y: 50, zoom: 1.08 },
           },
           {
-            id: 'me',
+            id: 'me' as BranchId,
             label: 'me',
-            side: 1,
+            side: 1 as const,
             y: this.toWorldY(0.49),
-            startDx: 16,
-            tipDx: 78,
+            startDx: 12,
+            tipDx: 86,
             tipDy: 4,
             thorns: 2,
             seed: 404,
@@ -752,54 +753,178 @@ export class InkTreeScene {
         ]
       : [
           {
-            id: 'work',
+            id: 'work' as BranchId,
             label: 'work with me',
-            side: -1,
+            side: -1 as const,
             y: this.toWorldY(0.305),
-            startDx: -24,
-            tipDx: -158,
+            startDx: -18,
+            tipDx: -154,
             tipDy: 9,
             thorns: 2,
             seed: 101,
             cameraTarget: { x: -490, y: 208, zoom: 1.12 },
           },
           {
-            id: 'updates',
+            id: 'updates' as BranchId,
             label: 'updates',
-            side: 1,
+            side: 1 as const,
             y: this.toWorldY(0.375),
-            startDx: 26,
-            tipDx: 172,
+            startDx: 20,
+            tipDx: 164,
             tipDy: 10,
             thorns: 2,
             seed: 202,
             cameraTarget: { x: 278, y: 382, zoom: 0.94 },
           },
           {
-            id: 'writing',
+            id: 'writing' as BranchId,
             label: 'writing',
-            side: -1,
+            side: -1 as const,
             y: this.toWorldY(0.505),
-            startDx: -26,
-            tipDx: -168,
+            startDx: -20,
+            tipDx: -158,
             tipDy: 6,
             thorns: 2,
             seed: 303,
             cameraTarget: { x: -245, y: 20, zoom: 1.16 },
           },
           {
-            id: 'me',
+            id: 'me' as BranchId,
             label: 'me',
-            side: 1,
+            side: 1 as const,
             y: this.toWorldY(0.575),
-            startDx: 24,
-            tipDx: 164,
+            startDx: 18,
+            tipDx: 156,
             tipDy: 5,
             thorns: 2,
             seed: 404,
             cameraTarget: { x: 425, y: -56, zoom: 0.92 },
           },
         ];
+
+    return raw.map((s) => {
+      const tip: Point2D = { x: trunkX + s.tipDx, y: s.y + s.tipDy };
+      const tmp = createTextTexture(s.label, { fontSize, fontWeight: 500 });
+      const labelSize = { w: tmp.width, h: tmp.height };
+      tmp.texture.dispose();
+      const labelCenter: Point2D = {
+        x: tip.x + s.side * (labelSize.w * 0.5 + labelGap),
+        y: tip.y + 1,
+      };
+      return { ...s, tip, labelSize, labelCenter };
+    });
+  }
+
+  private filterCanopyBlobs(
+    rawBack: CanopyBlob[],
+    rawFront: CanopyBlob[],
+    trunkX: number,
+    branchSpecs: ReturnType<InkTreeScene['computeBranchSpecs']>,
+    mobile: boolean,
+  ): { backBlobs: CanopyBlob[]; frontBlobs: CanopyBlob[] } {
+    const labelPadX = 10;
+    const labelPadY = 10;
+    const twigClearLen = mobile ? 43 : 48;
+
+    const boxes = branchSpecs.flatMap((s) => {
+      const labelBox = {
+        xMin: s.labelCenter.x - s.labelSize.w * 0.5 - labelPadX,
+        xMax: s.labelCenter.x + s.labelSize.w * 0.5 + labelPadX,
+        yMin: s.labelCenter.y - s.labelSize.h * 0.5 - labelPadY,
+        yMax: s.labelCenter.y + s.labelSize.h * 0.5 + labelPadY,
+        side: s.side,
+        innerX: s.side === 1 ? s.labelCenter.x - s.labelSize.w * 0.5 - labelPadX : s.labelCenter.x + s.labelSize.w * 0.5 + labelPadX,
+      };
+      const innerEdgeX = s.tip.x - s.side * twigClearLen;
+      const outerEdgeX = s.tip.x + s.side * 6;
+      const twigBox = {
+        xMin: Math.min(innerEdgeX, outerEdgeX),
+        xMax: Math.max(innerEdgeX, outerEdgeX),
+        yMin: Math.min(s.y, s.tip.y) - 18,
+        yMax: Math.max(s.y, s.tip.y) + 18,
+        side: s.side,
+        innerX: innerEdgeX,
+      };
+      return [labelBox, twigBox];
+    });
+
+    const trimBlob = (orig: CanopyBlob): CanopyBlob | null => {
+      let b: CanopyBlob = { ...orig };
+      for (const box of boxes) {
+        const qx = Math.max(box.xMin, Math.min(box.xMax, b.cx));
+        const qy = Math.max(box.yMin, Math.min(box.yMax, b.cy));
+        const normD = Math.hypot(
+          (qx - b.cx) / Math.max(1, b.rx),
+          (qy - b.cy) / Math.max(1, b.ry),
+        );
+        if (normD < 0.98) {
+          // Drop if center lies beyond the clearance plane or deep inside the box
+          if ((b.cx - trunkX) * box.side > (box.innerX - trunkX) * box.side || normD < 0.22) {
+            return null;
+          }
+          const shrink = Math.max(0.32, normD * 0.88);
+          b = { ...b, rx: b.rx * shrink, ry: b.ry * shrink };
+          if (b.rx < 11 || b.ry < 9) return null;
+        }
+      }
+      return b;
+    };
+
+    const tagged: Array<{ layer: 'back' | 'front'; blob: CanopyBlob }> = [];
+    for (const b of rawBack) {
+      const kept = trimBlob(b);
+      if (kept) tagged.push({ layer: 'back', blob: kept });
+    }
+    for (const b of rawFront) {
+      const kept = trimBlob(b);
+      if (kept) tagged.push({ layer: 'front', blob: kept });
+    }
+
+    // Keep only the trunk-connected component so no detached floating ovals survive
+    const visited = new Uint8Array(tagged.length);
+    const queue: number[] = [];
+    for (let i = 0; i < tagged.length; i++) {
+      const { blob } = tagged[i];
+      if (Math.abs(blob.cx - trunkX) <= blob.rx * 0.78) {
+        visited[i] = 1;
+        queue.push(i);
+      }
+    }
+
+    let head = 0;
+    while (head < queue.length) {
+      const cur = tagged[queue[head++]].blob;
+      for (let j = 0; j < tagged.length; j++) {
+        if (visited[j]) continue;
+        const cand = tagged[j].blob;
+        const d = Math.hypot(
+          (cur.cx - cand.cx) / Math.max(1, 0.78 * (cur.rx + cand.rx)),
+          (cur.cy - cand.cy) / Math.max(1, 0.78 * (cur.ry + cand.ry)),
+        );
+        if (d <= 0.94) {
+          visited[j] = 1;
+          queue.push(j);
+        }
+      }
+    }
+
+    const backBlobs: CanopyBlob[] = [];
+    const frontBlobs: CanopyBlob[] = [];
+    for (let i = 0; i < tagged.length; i++) {
+      if (!visited[i]) continue;
+      if (tagged[i].layer === 'back') backBlobs.push(tagged[i].blob);
+      else frontBlobs.push(tagged[i].blob);
+    }
+    return { backBlobs, frontBlobs };
+  }
+
+  private buildBranches(
+    trunkX: number,
+    groundY: number,
+    mobile: boolean,
+    specs: ReturnType<InkTreeScene['computeBranchSpecs']>,
+  ) {
+    const fontSize = 15;
 
     for (const s of specs) {
       const rootGroup = new THREE.Group();
@@ -814,13 +939,8 @@ export class InkTreeScene {
       twigMesh.position.z = 2.15;
       rootGroup.add(twigMesh);
 
-      const tip = twigPts[2];
-      const tmpTex = createTextTexture(s.label, { fontSize, fontWeight: 500 });
-      const labelCenter: Point2D = {
-        x: tip.x + s.side * (tmpTex.width * 0.5 + labelGap),
-        y: tip.y + 1,
-      };
-      tmpTex.texture.dispose();
+      const tip = s.tip;
+      const labelCenter = s.labelCenter;
 
       const lbl = this.createLabelUnit(s.label, `${s.label}.`, labelCenter, fontSize, s.seed + 9);
       rootGroup.add(lbl.mainMesh, lbl.dotMesh, lbl.ulMesh);

@@ -225,34 +225,34 @@ export function generateCanopyCluster(
   const blobs: CanopyBlob[] = [];
   // Offset core anchor blob asymmetrically
   blobs.push({
-    cx: cx + (rng() - 0.5) * rx * 0.34,
-    cy: cy + (rng() - 0.5) * ry * 0.30,
-    rx: rx * (0.58 + rng() * 0.28),
-    ry: ry * (0.58 + rng() * 0.28),
+    cx: cx + (rng() - 0.5) * rx * 0.28,
+    cy: cy + (rng() - 0.5) * ry * 0.26,
+    rx: rx * (0.62 + rng() * 0.26),
+    ry: ry * (0.62 + rng() * 0.26),
     seed: rng(),
   });
   for (let i = 0; i < lobeCount; i++) {
-    const angle = (i / lobeCount) * Math.PI * 2 + (rng() - 0.5) * 0.92;
-    const dist = 0.22 + rng() * 0.52;
+    const angle = (i / lobeCount) * Math.PI * 2 + (rng() - 0.5) * 0.88;
+    const dist = 0.18 + rng() * 0.36;
     const lx = cx + Math.cos(angle) * rx * dist;
     const ly = cy + Math.sin(angle) * ry * dist;
-    const sizeScale = 0.36 + rng() * 0.54;
-    const lrx = rx * sizeScale * (0.85 + rng() * 0.35);
-    const lry = ry * sizeScale * (0.82 + rng() * 0.36);
+    const sizeScale = 0.46 + rng() * 0.44;
+    const lrx = rx * sizeScale * (0.86 + rng() * 0.32);
+    const lry = ry * sizeScale * (0.84 + rng() * 0.32);
     blobs.push({ cx: lx, cy: ly, rx: lrx, ry: lry, seed: rng() });
   }
-  // Small edge protrusions & satellite fragments breaking up smooth silhouettes
+  // Connected edge bumps breaking up smooth silhouettes without detaching
   const fragCount = 2 + Math.floor(rng() * 3);
   for (let f = 0; f < fragCount; f++) {
     const angle = rng() * Math.PI * 2;
-    const dist = 0.78 + rng() * 0.34;
+    const dist = 0.36 + rng() * 0.24;
     const fx = cx + Math.cos(angle) * rx * dist;
     const fy = cy + Math.sin(angle) * ry * dist;
     blobs.push({
       cx: fx,
       cy: fy,
-      rx: rx * (0.14 + rng() * 0.16),
-      ry: ry * (0.14 + rng() * 0.16),
+      rx: rx * (0.28 + rng() * 0.16),
+      ry: ry * (0.28 + rng() * 0.16),
       seed: rng(),
     });
   }
