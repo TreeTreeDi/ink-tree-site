@@ -223,15 +223,21 @@ export function generateCanopyCluster(
 ): CanopyBlob[] {
   const rng = createRng(seed);
   const blobs: CanopyBlob[] = [];
-  // Core anchor blob
-  blobs.push({ cx, cy, rx: rx * 0.78, ry: ry * 0.78, seed: rng() });
+  // Offset anchor blob slightly so cloud clusters stay asymmetrical
+  blobs.push({
+    cx: cx + (rng() - 0.5) * rx * 0.24,
+    cy: cy + (rng() - 0.5) * ry * 0.22,
+    rx: rx * 0.62,
+    ry: ry * 0.66,
+    seed: rng(),
+  });
   for (let i = 0; i < lobeCount; i++) {
-    const angle = (i / lobeCount) * Math.PI * 2 + (rng() - 0.5) * 0.55;
-    const dist = 0.25 + rng() * 0.45;
+    const angle = (i / lobeCount) * Math.PI * 2 + (rng() - 0.5) * 0.65;
+    const dist = 0.34 + rng() * 0.44;
     const lx = cx + Math.cos(angle) * rx * dist;
     const ly = cy + Math.sin(angle) * ry * dist;
-    const lrx = rx * (0.42 + rng() * 0.35);
-    const lry = ry * (0.38 + rng() * 0.35);
+    const lrx = rx * (0.36 + rng() * 0.34);
+    const lry = ry * (0.34 + rng() * 0.36);
     blobs.push({ cx: lx, cy: ly, rx: lrx, ry: lry, seed: rng() });
   }
   return blobs;
@@ -248,39 +254,39 @@ export function buildTwigWithThorns(
   seed: number,
 ): THREE.BufferGeometry {
   const rng = createRng(seed);
-  const sampled = sampleOrganicPath(pts, 10, 2.2, seed);
+  const sampled = sampleOrganicPath(pts, 10, 2.0, seed);
   const strokes: THREE.BufferGeometry[] = [
     buildStrokeGeometry(sampled, wStart, wEnd, seed),
   ];
 
   for (let i = 0; i < thornCount; i++) {
-    const t = 0.22 + (i / Math.max(1, thornCount)) * 0.55 + (rng() - 0.5) * 0.08;
+    const t = 0.24 + (i / Math.max(1, thornCount)) * 0.54 + (rng() - 0.5) * 0.08;
     const idx = Math.min(sampled.length - 2, Math.max(1, Math.floor(t * (sampled.length - 1))));
     const p = sampled[idx];
     const next = sampled[idx + 1];
     const ang = Math.atan2(next.y - p.y, next.x - p.x);
     const side = i % 2 === 0 ? 1 : -1;
-    const thornAng = ang + side * (0.75 + rng() * 0.45);
-    const len = 6 + rng() * 7;
+    const thornAng = ang + side * (0.68 + rng() * 0.42);
+    const len = 7 + rng() * 8;
     const thornPts: Point2D[] = [
       p,
       {
-        x: p.x + Math.cos(thornAng) * len * 0.5,
-        y: p.y + Math.sin(thornAng) * len * 0.5,
+        x: p.x + Math.cos(thornAng) * len * 0.52,
+        y: p.y + Math.sin(thornAng) * len * 0.52,
       },
       {
         x: p.x + Math.cos(thornAng) * len,
         y: p.y + Math.sin(thornAng) * len,
       },
     ];
-    strokes.push(buildStrokeGeometry(thornPts, 2.6, 0.7, seed + i * 31));
+    strokes.push(buildStrokeGeometry(thornPts, 2.7, 0.65, seed + i * 31));
   }
 
   return mergeStrokeGeometries(strokes);
 }
 
 /**
- * Builds procedural grass blades, wildflowers/weeds, and deep trunk roots.
+ * Builds procedural clustered grass tufts, tall wildflowers/weeds, deep roots, and small shrubs.
  */
 export function buildGroundFlora(options: {
   xMin: number;
@@ -294,108 +300,166 @@ export function buildGroundFlora(options: {
   grassGeometry: THREE.BufferGeometry;
   flowerHeadsGeometry: THREE.BufferGeometry;
   rootsGeometry: THREE.BufferGeometry;
+  shrubsGeometry: THREE.BufferGeometry;
 } {
   const { xMin, xMax, groundY, trunkX, bandHeight, seed, densityScale = 1 } = options;
   const rng = createRng(seed);
   const grassStrokes: THREE.BufferGeometry[] = [];
   const flowerBlobs: CanopyBlob[] = [];
   const rootStrokes: THREE.BufferGeometry[] = [];
+  const shrubBlobs: CanopyBlob[] = [];
 
   const span = xMax - xMin;
-  const bladeCount = Math.round((span / 7.5) * densityScale);
 
-  // Base horizontal turf ribbon (subtle uneven ink ground line)
+  // Dense matted ink turf base across the full sheet width
   const turfPts: Point2D[] = [];
-  const turfSteps = 44;
+  const turfSteps = 64;
   for (let i = 0; i <= turfSteps; i++) {
     const t = i / turfSteps;
     const x = xMin + t * span;
-    const y = groundY + (fbm2D(t * 10, seed * 0.2, 2, seed) - 0.5) * 3.8;
+    const y = groundY - 1 + (fbm2D(t * 14, seed * 0.2, 2, seed) - 0.5) * 4.5;
     turfPts.push({ x, y });
   }
-  grassStrokes.push(buildStrokeGeometry(turfPts, 3.2, 2.8, seed + 5));
+  grassStrokes.push(buildStrokeGeometry(turfPts, 7.2, 6.6, seed + 5));
 
-  for (let i = 0; i < bladeCount; i++) {
-    const baseT = rng();
-    // Strong cluster near trunkX, sparser elsewhere
-    const nearTrunk = rng() < 0.56;
-    const x = nearTrunk
-      ? trunkX + (rng() - 0.5) * 260
-      : xMin + baseT * span;
-    const distFromTrunk = Math.abs(x - trunkX);
-    const trunkBoost = Math.max(0, 1 - distFromTrunk / 200);
-    // Keep far-right corner slightly lower so music caption reads cleanly
-    const rightQuiet = x > trunkX + 340 ? 0.52 : 1.0;
-    const h = bandHeight * (0.28 + rng() * 0.52 + trunkBoost * 0.55) * rightQuiet;
-    const lean = (rng() - 0.5) * 14 + (x < trunkX ? -2.5 : 2.5);
-    const y0 = groundY - 2 + (rng() - 0.5) * 3.5;
-    const pts = sampleOrganicPath(
-      [
-        { x, y: y0 },
-        { x: x + lean * 0.45, y: y0 + h * 0.55 },
-        { x: x + lean, y: y0 + h },
-      ],
-      4,
-      1.1,
-      seed + i * 7,
-    );
-    grassStrokes.push(buildStrokeGeometry(pts, 2.0 + rng() * 1.2, 0.5, seed + i * 11));
+  // Generate rhythmic tufts of grass blades across the entire ground line + heavy trunk cluster
+  const tuftCount = Math.round((span / 14) * densityScale);
+  for (let tIdx = 0; tIdx < tuftCount; tIdx++) {
+    const nearTrunk = rng() < 0.34;
+    const tuftCenterX = nearTrunk
+      ? trunkX + (rng() - 0.5) * 240
+      : xMin + (tIdx / tuftCount + (rng() - 0.5) * 0.015) * span;
+    const distFromTrunk = Math.abs(tuftCenterX - trunkX);
+    const trunkBoost = Math.max(0, 1 - distFromTrunk / 210);
+    const bladesInTuft = 3 + Math.floor(rng() * 5 + trunkBoost * 3);
 
-    // Wildflower / weed silhouette on ~7% of stems (slightly denser near trunk/left)
-    if (rng() < (0.045 + trunkBoost * 0.08) * rightQuiet) {
-      const stalkH = h * (1.35 + rng() * 0.65);
-      const topX = x + lean * 1.25;
-      const topY = y0 + stalkH;
+    for (let b = 0; b < bladesInTuft; b++) {
+      const bx = tuftCenterX + (rng() - 0.5) * 14;
+      const by = groundY - 2 + (rng() - 0.5) * 3.5;
+      const h = bandHeight * (0.34 + rng() * 0.68 + trunkBoost * 0.42);
+      const fan = (b - (bladesInTuft - 1) * 0.5) * 3.4 + (rng() - 0.5) * 8;
+      const pts = sampleOrganicPath(
+        [
+          { x: bx, y: by },
+          { x: bx + fan * 0.45, y: by + h * 0.56 },
+          { x: bx + fan, y: by + h },
+        ],
+        4,
+        1.1,
+        seed + tIdx * 37 + b * 7,
+      );
+      grassStrokes.push(buildStrokeGeometry(pts, 2.3 + rng() * 1.1, 0.5, seed + tIdx * 41 + b));
+    }
+
+    // Tall varied wildflower / weed stalks (~34% of tufts have 1 tall stem, slightly fewer directly behind player area)
+    const inPlayerRight = tuftCenterX > trunkX + 380;
+    if (rng() < (inPlayerRight ? 0.16 : 0.36 + trunkBoost * 0.14)) {
+      const wx = tuftCenterX + (rng() - 0.5) * 8;
+      const wy = groundY - 1;
+      const stalkH = bandHeight * (1.25 + rng() * 1.55);
+      const lean = (rng() - 0.5) * 26 + (wx < trunkX ? -4 : 4);
+      const topX = wx + lean;
+      const topY = wy + stalkH;
       const stalkPts = sampleOrganicPath(
         [
-          { x, y: y0 },
-          { x: x + lean * 0.55, y: y0 + stalkH * 0.52 },
+          { x: wx, y: wy },
+          { x: wx + lean * 0.42, y: wy + stalkH * 0.54 },
           { x: topX, y: topY },
         ],
         5,
-        1.5,
-        seed + i * 29,
+        1.8,
+        seed + tIdx * 71,
       );
-      grassStrokes.push(buildStrokeGeometry(stalkPts, 1.8, 0.7, seed + i * 31));
-      // Small flower petals / seed head
-      const petals = 4 + Math.floor(rng() * 3);
-      const pr = 2.6 + rng() * 2.4;
+      grassStrokes.push(buildStrokeGeometry(stalkPts, 2.0, 0.75, seed + tIdx * 79));
+
+      // Small side leaf blades on tall weeds
+      if (rng() > 0.35) {
+        const lx = wx + lean * 0.35;
+        const ly = wy + stalkH * 0.42;
+        const side = rng() > 0.5 ? 1 : -1;
+        grassStrokes.push(
+          buildStrokeGeometry(
+            [
+              { x: lx, y: ly },
+              { x: lx + side * 7, y: ly + 8 },
+              { x: lx + side * 12, y: ly + 11 },
+            ],
+            1.7,
+            0.5,
+            seed + tIdx * 83,
+          ),
+        );
+      }
+
+      // Stippled flower / weed seed head
+      const petals = 4 + Math.floor(rng() * 4);
+      const pr = 3.2 + rng() * 3.0;
       for (let p = 0; p < petals; p++) {
         const a = (p / petals) * Math.PI * 2 + rng() * 0.4;
         flowerBlobs.push({
           cx: topX + Math.cos(a) * pr * 0.85,
           cy: topY + Math.sin(a) * pr * 0.85,
-          rx: pr * 0.85,
-          ry: pr * 0.75,
+          rx: pr * 0.9,
+          ry: pr * 0.8,
           seed: rng(),
         });
       }
-      flowerBlobs.push({ cx: topX, cy: topY, rx: pr * 0.7, ry: pr * 0.7, seed: rng() });
+      flowerBlobs.push({ cx: topX, cy: topY, rx: pr * 0.75, ry: pr * 0.75, seed: rng() });
     }
   }
 
-  // Roots curving downward below trunk (revealed when zoomed / branch opened)
-  const rootAngles = [-2.45, -2.05, -1.7, -1.45, -1.05, -0.68];
+  // Deep curving roots below ground line under the trunk (revealed on branch open/zoom)
+  const rootAngles = [-2.55, -2.25, -1.92, -1.68, -1.42, -1.12, -0.82, -0.52];
   rootAngles.forEach((ang, idx) => {
-    const len = 34 + rng() * 44;
-    const midAng = ang + (rng() - 0.5) * 0.32;
+    const len = 42 + rng() * 58;
+    const midAng = ang + (rng() - 0.5) * 0.36;
+    const endX = trunkX + Math.cos(ang) * len;
+    const endY = groundY + Math.sin(ang) * len;
     const pts = sampleOrganicPath(
       [
-        { x: trunkX + (idx - 2.5) * 2.5, y: groundY + 1 },
+        { x: trunkX + (idx - 3.5) * 3.0, y: groundY + 2 },
         {
-          x: trunkX + Math.cos(midAng) * len * 0.52,
-          y: groundY + Math.sin(midAng) * len * 0.52,
+          x: trunkX + Math.cos(midAng) * len * 0.5,
+          y: groundY + Math.sin(midAng) * len * 0.5,
         },
-        {
-          x: trunkX + Math.cos(ang) * len,
-          y: groundY + Math.sin(ang) * len,
-        },
+        { x: endX, y: endY },
       ],
       7,
-      2.5,
+      2.8,
       seed + 900 + idx * 17,
     );
-    rootStrokes.push(buildStrokeGeometry(pts, 4.4, 0.9, seed + 950 + idx));
+    rootStrokes.push(buildStrokeGeometry(pts, 5.2, 0.95, seed + 950 + idx));
+
+    // Forked rootlet
+    if (idx % 2 === 0) {
+      const forkBase = pts[Math.floor(pts.length * 0.58)];
+      const fAng = ang + (idx < 4 ? -0.38 : 0.38);
+      rootStrokes.push(
+        buildStrokeGeometry(
+          [
+            forkBase,
+            {
+              x: forkBase.x + Math.cos(fAng) * 24,
+              y: forkBase.y + Math.sin(fAng) * 24,
+            },
+          ],
+          2.6,
+          0.6,
+          seed + 980 + idx,
+        ),
+      );
+    }
+  });
+
+  // Low shrub tufts around trunk base and ground horizon (revealed/thickened when zoomed)
+  const shrubCenters = [
+    { x: trunkX - 108, y: groundY + 12, rx: 32, ry: 22 },
+    { x: trunkX + 94, y: groundY + 10, rx: 28, ry: 19 },
+    { x: trunkX + 265, y: groundY + 11, rx: 30, ry: 20 },
+    { x: trunkX - 240, y: groundY + 9, rx: 24, ry: 17 },
+  ];
+  shrubCenters.forEach((sc, idx) => {
+    shrubBlobs.push(...generateCanopyCluster(sc.x, sc.y, sc.rx, sc.ry, 5, seed + 1200 + idx * 29));
   });
 
   return {
@@ -404,6 +468,7 @@ export function buildGroundFlora(options: {
       flowerBlobs.length ? flowerBlobs : [{ cx: trunkX, cy: groundY, rx: 1, ry: 1, seed: 0.1 }],
     ),
     rootsGeometry: mergeStrokeGeometries(rootStrokes),
+    shrubsGeometry: buildCanopyGeometry(shrubBlobs),
   };
 }
 
