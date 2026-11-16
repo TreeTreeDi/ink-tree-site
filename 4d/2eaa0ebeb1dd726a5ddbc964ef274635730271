@@ -1,0 +1,14 @@
+docs/verification.md
+  h_05f32768e190e9 6,10-27,37-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4d2eaa0ebeb1dd726a5ddbc964ef274635730271",
+  "prompts": {},
+  "humans": {
+    "h_05f32768e190e9": {
+      "author": "huaiju <huaiju1210085279@gmail.com>"
+    }
+  }
+}
