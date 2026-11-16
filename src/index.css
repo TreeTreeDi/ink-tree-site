@@ -1,0 +1,423 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #2a282c;
+  color: #c4c3cc;
+  font-family: 'Libre Franklin', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+html.is-post-page,
+html.is-post-page body {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+#root {
+  height: 100%;
+}
+
+html.is-post-page #root {
+  height: auto;
+  min-height: 100%;
+}
+
+/* ---------- Home / WebGL Tree ---------- */
+
+.tree-page {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.tree-canvas-host {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tree-hit-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tree-hit-target {
+  position: absolute;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  border-radius: 4px;
+}
+
+.tree-hit-target:focus-visible {
+  outline: 1.5px dashed rgba(196, 195, 204, 0.78);
+  outline-offset: 2px;
+}
+
+/* Back button pill (bottom-left) */
+.back-pill {
+  position: fixed;
+  left: 4.4%;
+  bottom: 4.2%;
+  z-index: 20;
+  width: 52px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: #c4c3cc;
+  color: #2a282c;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.32);
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.back-pill:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.back-pill:focus-visible {
+  outline: 2px solid #c4c3cc;
+  outline-offset: 3px;
+}
+
+/* Music player widget (bottom-right desktop, bottom-center mobile) */
+.music-widget {
+  position: fixed;
+  right: 4.5%;
+  bottom: 4.2%;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.music-caption {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-left: 16px;
+  margin-bottom: 6px;
+  color: #c4c3cc;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.28;
+  opacity: 0.92;
+  letter-spacing: -0.01em;
+}
+
+.music-caption-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.music-caption-arrow {
+  flex-shrink: 0;
+  transform: translateY(4px);
+}
+
+.music-pill {
+  pointer-events: auto;
+  width: clamp(300px, 27vw, 396px);
+  height: 28px;
+  padding: 0 10px 0 10px;
+  border-radius: 999px;
+  background: #c4c3cc;
+  color: #2a282c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.music-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #2a282c;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 3px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.88;
+}
+
+.music-btn:hover {
+  opacity: 1;
+}
+
+.music-btn:focus-visible {
+  outline: 1.5px solid #2a282c;
+  border-radius: 4px;
+}
+
+.music-play {
+  font-size: 10.5px;
+  padding-left: 2px;
+}
+
+.music-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: -0.01em;
+}
+
+.music-title.is-playing {
+  font-weight: 600;
+}
+
+.music-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .back-pill {
+    left: 18px;
+    bottom: 24px;
+  }
+
+  .music-widget {
+    right: auto;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    align-items: center;
+    flex-direction: column-reverse;
+  }
+
+  .music-pill {
+    width: min(76vw, 310px);
+  }
+
+  .music-caption {
+    margin-left: 0;
+    margin-bottom: 0;
+    margin-top: 7px;
+    font-size: 11.5px;
+    text-align: center;
+  }
+
+  .music-caption-arrow {
+    display: none;
+  }
+}
+
+/* Screen-reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- MDX Post Pages (/blog/*, /updates/*) ---------- */
+
+.post-page {
+  min-height: 100vh;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.85;
+  zoom: 0.9;
+}
+
+.post-container {
+  max-width: calc(640px + 7.5rem);
+  padding: 3rem 2rem 5rem 5.5rem;
+}
+
+.post-back {
+  display: inline-block;
+  margin-bottom: 2.5rem;
+  font-size: 0.8rem;
+  color: rgba(229, 229, 229, 0.4);
+  text-decoration: none;
+  padding: 0 2px;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.post-back:hover {
+  color: #e5e5e5;
+  background-color: #ff8800;
+}
+
+.post-title {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.93rem;
+  font-weight: 700;
+  color: #e5e5e5;
+  line-height: 1.4;
+}
+
+.post-date {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(229, 229, 229, 0.4);
+}
+
+.post-content {
+  margin-top: 1.6rem;
+  max-width: 640px;
+}
+
+.post-content p {
+  margin: 1.2rem 0;
+}
+
+.post-content ul {
+  padding-left: 1.5rem;
+  margin: 1.2rem 0;
+  list-style-type: square;
+}
+
+.post-content li {
+  margin: 0.5rem 0;
+}
+
+.post-content a {
+  color: #ff8800;
+  text-decoration: underline;
+}
+
+.post-content a:hover {
+  color: #e5e5e5;
+  background-color: #ff8800;
+  text-decoration: none;
+}
+
+.post-content code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+.post-figure {
+  margin: 1.6rem 0;
+}
+
+.post-figure-svg {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  border: 1px solid rgba(229, 229, 229, 0.12);
+}
+
+.post-figcaption {
+  margin-top: 0.45rem;
+  font-size: 0.75rem;
+  color: rgba(229, 229, 229, 0.42);
+}
+
+.post-cta {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: rgba(229, 229, 229, 0.4);
+  text-align: right;
+}
+
+.post-cta a {
+  color: #ff8800;
+  text-decoration: underline;
+}
+
+.post-cta a:hover {
+  color: #e5e5e5;
+  background-color: #ff8800;
+  text-decoration: none;
+}
+
+.post-footer {
+  margin-top: 3.2rem;
+  max-width: 640px;
+}
+
+.post-rule {
+  border: 0;
+  border-top: 1px solid rgba(229, 229, 229, 0.2);
+  width: 150px;
+  margin: 0 0 1.25rem 0;
+}
+
+.post-footer-links {
+  font-size: 0.8rem;
+  color: rgba(229, 229, 229, 0.55);
+}
+
+.post-footer-links a {
+  color: #ff8800;
+  text-decoration: underline;
+}
+
+.post-footer-links a:hover {
+  color: #e5e5e5;
+  background-color: #ff8800;
+  text-decoration: none;
+}
+
+@media (max-width: 767px) {
+  .post-cta {
+    display: none;
+  }
+
+  .post-container {
+    padding: 2.5rem 1.5rem 4rem 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back-pill,
+  .post-back {
+    transition: none;
+  }
+}
