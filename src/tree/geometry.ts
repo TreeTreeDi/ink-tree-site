@@ -286,8 +286,8 @@ export function buildTwigWithThorns(
 }
 
 /**
- * Builds procedural clustered grass tufts (15-30px), ~8-12 sparse tall wildflowers, deep roots, and small shrubs.
- * Avoids drawing a continuous solid horizontal ground line.
+ * Builds procedural continuous undulating grass band, irregular granular ground bed,
+ * ~8-12 sparse tall wildflowers, deep roots, and small shrubs.
  */
 export function buildGroundFlora(options: {
   xMin: number;
@@ -298,8 +298,10 @@ export function buildGroundFlora(options: {
   seed: number;
   densityScale?: number;
   flowerCount?: number;
+  flowerRange?: [number, number];
 }): {
   grassGeometry: THREE.BufferGeometry;
+  groundBedGeometry: THREE.BufferGeometry;
   flowerHeadsGeometry: THREE.BufferGeometry;
   rootsGeometry: THREE.BufferGeometry;
   shrubsGeometry: THREE.BufferGeometry;
@@ -313,58 +315,81 @@ export function buildGroundFlora(options: {
     seed,
     densityScale = 1,
     flowerCount = 10,
+    flowerRange,
   } = options;
   const rng = createRng(seed);
   const grassStrokes: THREE.BufferGeometry[] = [];
+  const groundBedStrokes: THREE.BufferGeometry[] = [];
   const flowerBlobs: CanopyBlob[] = [];
   const rootStrokes: THREE.BufferGeometry[] = [];
   const shrubBlobs: CanopyBlob[] = [];
 
   const span = xMax - xMin;
 
-  // Clustered low grass tufts (~15-30px) with natural gaps between clusters (no solid continuous line)
-  const clusterCount = Math.round((span / 48) * densityScale);
+  // Irregular granular ground bed along the base (broken organic strokes, never a ruler-straight solid line)
+  const bedSegs = Math.max(16, Math.round(span / 46));
+  for (let s = 0; s < bedSegs; s++) {
+    const sx0 = xMin + (s / bedSegs) * span + (rng() - 0.5) * 8;
+    const sx1 = sx0 + (span / bedSegs) * (0.72 + rng() * 0.48);
+    const yOff = (fbm2D(sx0 * 0.014, seed * 0.2, 2, seed) - 0.5) * 4.5;
+    const pts = sampleOrganicPath(
+      [
+        { x: sx0, y: groundY - 2.5 + yOff },
+        { x: (sx0 + sx1) * 0.5, y: groundY - 1.5 + yOff + (rng() - 0.5) * 3.0 },
+        { x: sx1, y: groundY - 2.5 + yOff + (rng() - 0.5) * 2.5 },
+      ],
+      5,
+      1.3,
+      seed + 11 + s * 13,
+    );
+    groundBedStrokes.push(buildStrokeGeometry(pts, 4.8 + rng() * 2.6, 3.2 + rng() * 2.0, seed + 29 + s));
+  }
+
+  // Full-width continuous low grass band with undulating density/height (lush near trunk & crests)
+  const clusterCount = Math.round((span / 16) * densityScale);
   for (let cIdx = 0; cIdx < clusterCount; cIdx++) {
-    const baseT = (cIdx + 0.25 + rng() * 0.55) / clusterCount;
+    const baseT = (cIdx + 0.15 + rng() * 0.7) / clusterCount;
     const clusterX = xMin + baseT * span;
     const distFromTrunk = Math.abs(clusterX - trunkX);
-    const nearTrunk = distFromTrunk < 120;
-    // Leave clear meadow gaps between tufts while keeping trunk base lush
-    if (!nearTrunk && rng() < 0.24) continue;
-
-    const subTufts = nearTrunk ? 2 : 1 + Math.floor(rng() * 1.8);
-    for (let st = 0; st < subTufts; st++) {
-      const tuftX = clusterX + (rng() - 0.5) * 16;
-      const bladesInTuft = 3 + Math.floor(rng() * 4 + (nearTrunk ? 2 : 0));
-      for (let b = 0; b < bladesInTuft; b++) {
-        const bx = tuftX + (rng() - 0.5) * 11;
-        const by = groundY - 3 + (rng() - 0.5) * 4;
-        const h = bandHeight * (0.48 + rng() * 0.56 + (nearTrunk ? 0.18 : 0)); // ~14-31px
-        const fan = (b - (bladesInTuft - 1) * 0.5) * 3.1 + (rng() - 0.5) * 7.5;
-        const pts = sampleOrganicPath(
-          [
-            { x: bx, y: by },
-            { x: bx + fan * 0.45, y: by + h * 0.56 },
-            { x: bx + fan, y: by + h },
-          ],
-          4,
-          1.0,
-          seed + cIdx * 53 + st * 19 + b * 7,
+    const nearTrunk = Math.exp(-(distFromTrunk * distFromTrunk) / (145 * 145));
+    const wave =
+      0.5 +
+      0.5 *
+        Math.sin(
+          clusterX * 0.015 +
+            fbm2D(clusterX * 0.004, seed * 0.17, 2, seed) * 4.2,
         );
-        grassStrokes.push(buildStrokeGeometry(pts, 2.5 + rng() * 1.1, 0.5, seed + cIdx * 61 + b));
-      }
+    const lush = Math.min(1, wave * 0.72 + nearTrunk * 0.65);
+
+    const bladesInTuft = 2 + Math.floor(lush * 4.2 + rng() * 1.9);
+    for (let b = 0; b < bladesInTuft; b++) {
+      const bx = clusterX + (rng() - 0.5) * 14;
+      const by = groundY - 3.5 + (rng() - 0.5) * 4;
+      const h = bandHeight * (0.46 + lush * 0.52 + rng() * 0.28);
+      const fan = (b - (bladesInTuft - 1) * 0.5) * 2.6 + (rng() - 0.5) * 8.5;
+      const pts = sampleOrganicPath(
+        [
+          { x: bx, y: by },
+          { x: bx + fan * 0.45, y: by + h * 0.56 },
+          { x: bx + fan, y: by + h },
+        ],
+        4,
+        1.1,
+        seed + cIdx * 53 + b * 7,
+      );
+      grassStrokes.push(buildStrokeGeometry(pts, 2.3 + rng() * 1.1, 0.48, seed + cIdx * 61 + b));
     }
   }
 
-  // Sparse tall wildflowers / weed stems (~8-12 total across width, up to ~70px, skipping bottom-right player caption area)
-  const safeSpan = span * 0.9;
+  // Sparse tall wildflowers / weed stems (~8-12 across visible viewport, up to ~70px, skipping music player)
+  const [fxMin, fxMax] = flowerRange ?? [xMin + span * 0.05, xMax - span * 0.05];
+  const fSpan = Math.max(100, fxMax - fxMin);
   for (let fIdx = 0; fIdx < flowerCount; fIdx++) {
-    // Stratified jittered horizontal placement so flowers scatter unevenly without clumping everywhere
-    const slotFrac = (fIdx + 0.18 + rng() * 0.64) / Math.max(1, flowerCount);
-    let wx = xMin + span * 0.05 + slotFrac * safeSpan;
-    // Push flowers clear of the bottom-right music player / caption box
-    if (wx > trunkX + 360 && wx < trunkX + 860) {
-      wx -= 480;
+    const slotFrac = (fIdx + 0.16 + rng() * 0.68) / Math.max(1, flowerCount);
+    let wx = fxMin + slotFrac * fSpan;
+    // Keep clear of desktop bottom-right music player / caption box
+    if (wx > trunkX + 340 && wx < trunkX + 860) {
+      wx -= 460;
     }
     const wy = groundY - 2;
     const stalkH = 38 + rng() * 32; // ~38-70px varied heights
@@ -383,7 +408,6 @@ export function buildGroundFlora(options: {
     );
     grassStrokes.push(buildStrokeGeometry(stalkPts, 2.2, 0.8, seed + 500 + fIdx * 79));
 
-    // Small side leaf blades on tall weeds
     if (rng() > 0.25) {
       const lx = wx + lean * 0.38;
       const ly = wy + stalkH * 0.44;
@@ -461,12 +485,15 @@ export function buildGroundFlora(options: {
     }
   });
 
-  // Low shrub tufts around trunk base and ground horizon (revealed/thickened when zoomed)
+  // Low shrub mounds around trunk base and across ground horizon (revealed in me / zoomed states)
   const shrubCenters = [
-    { x: trunkX - 108, y: groundY + 12, rx: 32, ry: 22 },
-    { x: trunkX + 94, y: groundY + 10, rx: 28, ry: 19 },
-    { x: trunkX + 265, y: groundY + 11, rx: 30, ry: 20 },
-    { x: trunkX - 240, y: groundY + 9, rx: 24, ry: 17 },
+    { x: trunkX - 240, y: groundY + 11, rx: 28, ry: 18 },
+    { x: trunkX - 112, y: groundY + 15, rx: 38, ry: 25 },
+    { x: trunkX + 96, y: groundY + 14, rx: 34, ry: 22 },
+    { x: trunkX + 275, y: groundY + 15, rx: 40, ry: 26 },
+    { x: trunkX + 510, y: groundY + 12, rx: 32, ry: 20 },
+    { x: trunkX + 760, y: groundY + 14, rx: 36, ry: 23 },
+    { x: trunkX + 980, y: groundY + 12, rx: 30, ry: 19 },
   ];
   shrubCenters.forEach((sc, idx) => {
     shrubBlobs.push(...generateCanopyCluster(sc.x, sc.y, sc.rx, sc.ry, 5, seed + 1200 + idx * 29));
@@ -474,6 +501,7 @@ export function buildGroundFlora(options: {
 
   return {
     grassGeometry: mergeStrokeGeometries(grassStrokes),
+    groundBedGeometry: mergeStrokeGeometries(groundBedStrokes),
     flowerHeadsGeometry: buildCanopyGeometry(
       flowerBlobs.length ? flowerBlobs : [{ cx: trunkX, cy: groundY, rx: 1, ry: 1, seed: 0.1 }],
     ),

@@ -388,7 +388,7 @@ export class InkTreeScene {
 
     // Key landmark coordinates
     const trunkX = mobile ? 12 : this.toWorldX(0.4);
-    const groundY = mobile ? this.toWorldY(0.88) : this.toWorldY(0.942);
+    const groundY = mobile ? this.toWorldY(0.90) : this.toWorldY(0.942);
     const trunkBaseY = mobile ? groundY - 4 : this.toWorldY(0.968);
     const canopyTopY = mobile ? this.toWorldY(0.105) : this.toWorldY(0.18);
     const canopyBottomY = mobile ? this.toWorldY(0.65) : this.toWorldY(0.77);
@@ -478,21 +478,30 @@ export class InkTreeScene {
     frontCanopyMesh.position.z = 2.35;
     this.treeGroup.add(frontCanopyMesh);
 
-    // 3. Ground flora (clustered low grass 15-30px with gaps, ~8-12 sparse tall wildflowers, zoomed roots & shrubs)
+    // 3. Ground flora (continuous undulating grass 20-35px desktop / 40-60px mobile, irregular granular bed, ~8-12 wildflowers, zoomed roots & shrubs)
     const flora = buildGroundFlora({
       xMin: -W * 1.05,
       xMax: W * 1.05,
       groundY,
       trunkX,
-      bandHeight: mobile ? 25 : 28,
+      bandHeight: mobile ? 46 : 29,
       seed: 707,
-      densityScale: mobile ? 0.92 : 0.95,
-      flowerCount: mobile ? 9 : 16,
+      densityScale: mobile ? 0.96 : 0.98,
+      flowerCount: mobile ? 9 : 11,
+      flowerRange: mobile ? [-175, 175] : [-W * 0.46, W * 0.46],
     });
     this.track(flora.grassGeometry);
+    this.track(flora.groundBedGeometry);
     this.track(flora.flowerHeadsGeometry);
     this.track(flora.rootsGeometry);
     this.track(flora.shrubsGeometry);
+
+    const groundBedMesh = new THREE.Mesh(
+      flora.groundBedGeometry,
+      this.makeStrokeMat({ swayAmp: 0, grainScale: 1.15 }),
+    );
+    groundBedMesh.position.z = 2.05;
+    this.treeGroup.add(groundBedMesh);
 
     const grassMesh = new THREE.Mesh(
       flora.grassGeometry,
@@ -513,23 +522,24 @@ export class InkTreeScene {
     rootsMesh.position.z = 1.85;
     this.treeGroup.add(rootsMesh);
 
-    this.shrubsMat = this.makeCanopyMat({ progress: 0, swayAmp: 0.55, density: 0.70 });
+    this.shrubsMat = this.makeCanopyMat({ progress: 0, swayAmp: 0.55, density: 0.74 });
     const shrubsMesh = new THREE.Mesh(flora.shrubsGeometry, this.shrubsMat);
     shrubsMesh.position.z = 2.25;
     this.treeGroup.add(shrubsMesh);
 
-    // Extra dense close-up grass around trunk revealed on branch open/zoom
+    // Thicker ~60-80px lush grass band revealed when branches (especially me) open/zoom
     const extraFlora = buildGroundFlora({
-      xMin: trunkX - 240,
-      xMax: trunkX + 280,
-      groundY: groundY - 2,
+      xMin: trunkX - 420,
+      xMax: trunkX + 1080,
+      groundY: groundY - 3,
       trunkX,
-      bandHeight: mobile ? 26 : 30,
+      bandHeight: mobile ? 62 : 66,
       seed: 808,
-      densityScale: 0.85,
+      densityScale: 1.02,
       flowerCount: 0,
     });
     this.track(extraFlora.grassGeometry);
+    this.track(extraFlora.groundBedGeometry);
     extraFlora.flowerHeadsGeometry.dispose();
     extraFlora.rootsGeometry.dispose();
     extraFlora.shrubsGeometry.dispose();
@@ -539,9 +549,11 @@ export class InkTreeScene {
       swayAmp: 1.5,
       swayPhase: 1.2,
     });
+    const extraBedMesh = new THREE.Mesh(extraFlora.groundBedGeometry, this.extraGrassMat);
+    extraBedMesh.position.z = 2.26;
     const extraGrassMesh = new THREE.Mesh(extraFlora.grassGeometry, this.extraGrassMat);
     extraGrassMesh.position.z = 2.3;
-    this.treeGroup.add(extraGrassMesh);
+    this.treeGroup.add(extraBedMesh, extraGrassMesh);
 
     // 4. Sparse drifting dust particles across sheet
     this.buildDustParticles(W, H);
