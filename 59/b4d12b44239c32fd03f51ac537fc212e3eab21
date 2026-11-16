@@ -1,0 +1,14 @@
+src/tree/InkTreeScene.ts
+  h_05f32768e190e9 776,1190-1191
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59b4d12b44239c32fd03f51ac537fc212e3eab21",
+  "prompts": {},
+  "humans": {
+    "h_05f32768e190e9": {
+      "author": "huaiju <huaiju1210085279@gmail.com>"
+    }
+  }
+}
