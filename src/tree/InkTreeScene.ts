@@ -392,7 +392,7 @@ export class InkTreeScene {
         { x: trunkX + (mobile ? -1 : -1.5), y: (trunkBaseY + canopyBottomY) * 0.5 },
         { x: trunkX + 1, y: canopyBottomY + 24 },
         { x: trunkX, y: (canopyTopY + canopyBottomY) * 0.5 },
-        { x: trunkX - 1, y: canopyTopY + 30 },
+        { x: trunkX - 1, y: canopyTopY - 35 },
       ],
       14,
       1.1,
@@ -661,7 +661,7 @@ export class InkTreeScene {
             tipDy: 4,
             thorns: 2,
             seed: 404,
-            cameraTarget: { x: 105, y: -35, zoom: 0.94 },
+            cameraTarget: { x: 195, y: 12, zoom: 0.96 },
           },
         ]
       : [
@@ -732,8 +732,8 @@ export class InkTreeScene {
       // Approximate label width first by building texture
       const tmpTex = createTextTexture(s.label, { fontSize, fontWeight: 500 });
       const labelCenter: Point2D = {
-        x: tip.x + s.side * (tmpTex.width * 0.5 + labelGap * 0.5),
-        y: tip.y + 1,
+        x: tip.x + s.side * (tmpTex.width * 0.5 + labelGap * 0.45),
+        y: tip.y + 10,
       };
       tmpTex.texture.dispose();
 
@@ -814,13 +814,13 @@ export class InkTreeScene {
     growthMats: THREE.ShaderMaterial[],
     canopyMats: THREE.ShaderMaterial[],
   ) {
-    // Extension branch from "me" twig tip to a small foliage canopy
+    // Extension branch curves below the "me." label to a small foliage canopy
     const extTip: Point2D = mobile
-      ? { x: tip.x + 88, y: tip.y + 18 }
-      : { x: tip.x + 150, y: tip.y + 18 };
+      ? { x: tip.x + 56, y: tip.y + 4 }
+      : { x: tip.x + 150, y: tip.y + 8 };
     const extPts = [
       tip,
-      { x: tip.x + (extTip.x - tip.x) * 0.48, y: tip.y - 4 },
+      { x: tip.x + (extTip.x - tip.x) * 0.45, y: tip.y - 12 },
       extTip,
     ];
     const branchGeo = this.track(buildTwigWithThorns(extPts, 3.2, 1.8, 2, 411));
@@ -831,10 +831,10 @@ export class InkTreeScene {
     group.add(branchMesh);
 
     const canopyBlobs = generateCanopyCluster(
-      extTip.x + 12,
+      extTip.x + (mobile ? 8 : 12),
       extTip.y + 6,
-      mobile ? 38 : 54,
-      mobile ? 32 : 42,
+      mobile ? 30 : 54,
+      mobile ? 26 : 42,
       6,
       455,
     );
@@ -846,16 +846,16 @@ export class InkTreeScene {
     group.add(canopyMesh);
 
     // Bio paragraphs column to the right of the "me" canopy
-    const bioX = mobile ? tip.x + 74 : extTip.x + 215;
-    let cursorTopY = mobile ? extTip.y + 155 : extTip.y + 215;
-    const bioMaxWidth = mobile ? 215 : 292;
-    const bioFontSize = mobile ? 13.5 : 15;
+    const bioX = mobile ? extTip.x + 146 : extTip.x + 215;
+    let cursorTopY = mobile ? extTip.y + 262 : extTip.y + 215;
+    const bioMaxWidth = mobile ? 210 : 292;
+    const bioFontSize = mobile ? 12.8 : 15;
 
     BIO_PARAGRAPHS.forEach((p, idx) => {
       const rendered = createBioParagraphTexture(p, {
         maxWidth: bioMaxWidth,
         fontSize: bioFontSize,
-        lineHeightRatio: 1.58,
+        lineHeightRatio: mobile ? 1.48 : 1.58,
       });
       this.track(rendered.texture);
       const geo = this.track(new THREE.PlaneGeometry(rendered.width, rendered.height));
@@ -873,19 +873,21 @@ export class InkTreeScene {
         links: rendered.links,
         delaySec: 0.34 + idx * 0.14,
       });
-      cursorTopY -= rendered.height + (mobile ? 12 : 16);
+      cursorTopY -= rendered.height + (mobile ? 10 : 16);
     });
 
     // Pile of 4 taped halftone photos
-    const photoBaseX = mobile ? bioX - 24 : bioX + 265;
+    const photoBaseX = mobile ? bioX - 42 : bioX + 265;
     const photoBaseY = mobile ? cursorTopY - 40 : extTip.y + 145;
+    const mobileDx = [0, 82, 10, 88];
+    const mobileDy = [0, -14, -68, -80];
 
     ME_PHOTOS.forEach((photo, idx) => {
       const aspect = photo.height / photo.width;
-      const dispW = mobile ? photo.displayWidth * 0.76 : photo.displayWidth;
+      const dispW = mobile ? photo.displayWidth * 0.62 : photo.displayWidth;
       const dispH = dispW * aspect;
-      const px = photoBaseX + (mobile ? (idx % 2) * 56 : photo.offsetX);
-      const py = photoBaseY - (mobile ? idx * 105 : photo.offsetY);
+      const px = photoBaseX + (mobile ? mobileDx[idx] : photo.offsetX);
+      const py = photoBaseY + (mobile ? mobileDy[idx] : -photo.offsetY);
 
       const cardGroup = new THREE.Group();
       cardGroup.position.set(px, py, 7 + idx * 0.25);
@@ -999,8 +1001,8 @@ export class InkTreeScene {
     const canopyBlobs = generateCanopyCluster(
       target.x - 12,
       target.y + 14,
-      mobile ? 46 : 62,
-      mobile ? 36 : 48,
+      mobile ? 44 : 58,
+      mobile ? 34 : 44,
       7,
       322,
     );
@@ -1011,9 +1013,13 @@ export class InkTreeScene {
     cMesh.position.z = 3.5;
     group.add(cMesh);
 
-    const lblCenter: Point2D = { x: target.x - 12, y: target.y + 16 };
+    // Place label cleanly on dark paper just left of the small canopy
     const lblTex = createTextTexture(post.label, { fontSize: 14.5, fontWeight: 600 });
     this.track(lblTex.texture);
+    const lblCenter: Point2D = {
+      x: target.x - (mobile ? 46 : 74) - lblTex.width * 0.5,
+      y: target.y + 22,
+    };
     const lblGeo = this.track(new THREE.PlaneGeometry(lblTex.width, lblTex.height));
     const lblMat = this.makeTextMat(lblTex.texture, 0, 1);
     const lblMesh = new THREE.Mesh(lblGeo, lblMat);
@@ -1029,7 +1035,7 @@ export class InkTreeScene {
     const dateGeo = this.track(new THREE.PlaneGeometry(dateTex.width, dateTex.height));
     const dateMat = this.makeTextMat(dateTex.texture, 0, 1);
     const dateMesh = new THREE.Mesh(dateGeo, dateMat);
-    dateMesh.position.set(lblCenter.x, lblCenter.y - 19, 6);
+    dateMesh.position.set(lblCenter.x + lblTex.width * 0.5 - dateTex.width * 0.5, lblCenter.y - 18, 6);
     group.add(dateMesh);
 
     const ulGeo = this.track(
@@ -1107,11 +1113,13 @@ export class InkTreeScene {
       subMesh.position.z = 3.25;
       group.add(subMesh);
 
+      const rx = mobile ? 24 : 31;
+      const ry = mobile ? 18 : 23;
       const blobs = generateCanopyCluster(
         offset.x,
         offset.y + 8,
-        mobile ? 26 : 33,
-        mobile ? 20 : 25,
+        rx,
+        ry,
         5,
         560 + idx * 17,
       );
@@ -1122,9 +1130,13 @@ export class InkTreeScene {
       cMesh.position.z = 3.5;
       group.add(cMesh);
 
-      const lblCenter: Point2D = { x: offset.x, y: offset.y + 10 };
+      // Place date label cleanly beside the canopy on dark paper
       const lblTex = createTextTexture(entry.label, { fontSize: 13.5, fontWeight: 600 });
       this.track(lblTex.texture);
+      const lblCenter: Point2D = {
+        x: offset.x + side * (rx + lblTex.width * 0.5 + 8),
+        y: offset.y + 10,
+      };
       const lblGeo = this.track(new THREE.PlaneGeometry(lblTex.width, lblTex.height));
       const lblMat = this.makeTextMat(lblTex.texture, 0, 1);
       const lblMesh = new THREE.Mesh(lblGeo, lblMat);
@@ -1150,7 +1162,7 @@ export class InkTreeScene {
         kind: 'route',
         href: entry.route,
         worldCenter: lblCenter,
-        size: { w: Math.max(lblTex.width + 12, 54), h: 36 },
+        size: { w: Math.max(lblTex.width + 14, 58), h: 36 },
         underlineMat: ulMat,
         hoverProgress: 0,
         appearDelaySec: 0.28 + idx * 0.1,
@@ -1202,8 +1214,8 @@ export class InkTreeScene {
         const blobs = generateCanopyCluster(
           target.x - 10,
           target.y + 10,
-          mobile ? 38 : 48,
-          mobile ? 28 : 34,
+          mobile ? 36 : 44,
+          mobile ? 26 : 32,
           6,
           650 + idx,
         );
@@ -1242,11 +1254,11 @@ export class InkTreeScene {
         group.add(m1, m2);
       }
 
-      const lblCenter: Point2D = item.hasCanopy
-        ? { x: target.x - 10, y: target.y + 12 }
-        : { x: target.x - 4, y: target.y - 18 };
       const lblTex = createTextTexture(item.label, { fontSize: 14, fontWeight: 600 });
       this.track(lblTex.texture);
+      const lblCenter: Point2D = item.hasCanopy
+        ? { x: target.x - (mobile ? 46 : 62) - lblTex.width * 0.5, y: target.y + 14 }
+        : { x: target.x - 18 - lblTex.width * 0.3, y: target.y - 20 };
       const lblGeo = this.track(new THREE.PlaneGeometry(lblTex.width, lblTex.height));
       const lblMat = this.makeTextMat(lblTex.texture, 0, 1);
       const lblMesh = new THREE.Mesh(lblGeo, lblMat);

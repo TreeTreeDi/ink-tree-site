@@ -302,7 +302,7 @@ export function buildGroundFlora(options: {
   const rootStrokes: THREE.BufferGeometry[] = [];
 
   const span = xMax - xMin;
-  const bladeCount = Math.round((span / 5.2) * densityScale);
+  const bladeCount = Math.round((span / 7.5) * densityScale);
 
   // Base horizontal turf ribbon (subtle uneven ink ground line)
   const turfPts: Point2D[] = [];
@@ -310,23 +310,25 @@ export function buildGroundFlora(options: {
   for (let i = 0; i <= turfSteps; i++) {
     const t = i / turfSteps;
     const x = xMin + t * span;
-    const y = groundY + (fbm2D(t * 10, seed * 0.2, 2, seed) - 0.5) * 4.5;
+    const y = groundY + (fbm2D(t * 10, seed * 0.2, 2, seed) - 0.5) * 3.8;
     turfPts.push({ x, y });
   }
-  grassStrokes.push(buildStrokeGeometry(turfPts, 3.6, 3.2, seed + 5));
+  grassStrokes.push(buildStrokeGeometry(turfPts, 3.2, 2.8, seed + 5));
 
   for (let i = 0; i < bladeCount; i++) {
     const baseT = rng();
-    // Bias extra blades near trunkX
-    const nearTrunk = rng() < 0.36;
+    // Strong cluster near trunkX, sparser elsewhere
+    const nearTrunk = rng() < 0.56;
     const x = nearTrunk
-      ? trunkX + (rng() - 0.5) * 230
+      ? trunkX + (rng() - 0.5) * 260
       : xMin + baseT * span;
     const distFromTrunk = Math.abs(x - trunkX);
-    const trunkBoost = Math.max(0, 1 - distFromTrunk / 190);
-    const h = bandHeight * (0.42 + rng() * 0.72 + trunkBoost * 0.45);
-    const lean = (rng() - 0.5) * 16 + (x < trunkX ? -3 : 3);
-    const y0 = groundY - 2 + (rng() - 0.5) * 4;
+    const trunkBoost = Math.max(0, 1 - distFromTrunk / 200);
+    // Keep far-right corner slightly lower so music caption reads cleanly
+    const rightQuiet = x > trunkX + 340 ? 0.52 : 1.0;
+    const h = bandHeight * (0.28 + rng() * 0.52 + trunkBoost * 0.55) * rightQuiet;
+    const lean = (rng() - 0.5) * 14 + (x < trunkX ? -2.5 : 2.5);
+    const y0 = groundY - 2 + (rng() - 0.5) * 3.5;
     const pts = sampleOrganicPath(
       [
         { x, y: y0 },
@@ -334,14 +336,14 @@ export function buildGroundFlora(options: {
         { x: x + lean, y: y0 + h },
       ],
       4,
-      1.2,
+      1.1,
       seed + i * 7,
     );
-    grassStrokes.push(buildStrokeGeometry(pts, 2.2 + rng() * 1.4, 0.55, seed + i * 11));
+    grassStrokes.push(buildStrokeGeometry(pts, 2.0 + rng() * 1.2, 0.5, seed + i * 11));
 
-    // Wildflower / weed silhouette on ~9% of stems (more frequent near trunk and edges)
-    if (rng() < 0.085 + trunkBoost * 0.05) {
-      const stalkH = h * (1.25 + rng() * 0.65);
+    // Wildflower / weed silhouette on ~7% of stems (slightly denser near trunk/left)
+    if (rng() < (0.045 + trunkBoost * 0.08) * rightQuiet) {
+      const stalkH = h * (1.35 + rng() * 0.65);
       const topX = x + lean * 1.25;
       const topY = y0 + stalkH;
       const stalkPts = sampleOrganicPath(

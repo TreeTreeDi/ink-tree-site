@@ -375,16 +375,16 @@ uniform vec3 uInkColor;
 ${GLSL_NOISE}
 
 void main() {
-  vec4 sample = texture2D(uTex, vUv);
-  if (sample.a < 0.03) discard;
+  vec4 texel = texture2D(uTex, vUv);
+  if (texel.a < 0.03) discard;
 
   float grain = (vnoise(vWorld * 1.1) - 0.5) * 0.09;
   // Ink-in reveal combines opacity + subtle spatial wipe
   float reveal = smoothstep(0.0, 0.85, uProgress);
-  float alpha = sample.a * reveal * uOpacity;
+  float alpha = texel.a * reveal * uOpacity;
   if (alpha < 0.02) discard;
 
-  vec3 col = sample.rgb * (1.0 + grain);
+  vec3 col = texel.rgb * (1.0 + grain);
   gl_FragColor = vec4(col, alpha);
 }
 `;
