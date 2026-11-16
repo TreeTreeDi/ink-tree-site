@@ -1,0 +1,14 @@
+src/index.css
+  h_05f32768e190e9 228,235,257-258,260,262,268-270
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3c76b4ac091bbbf923bac66aba7c3e5b8b697650",
+  "prompts": {},
+  "humans": {
+    "h_05f32768e190e9": {
+      "author": "huaiju <huaiju1210085279@gmail.com>"
+    }
+  }
+}
