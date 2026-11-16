@@ -109,6 +109,7 @@ interface BioRuntimeItem {
   mesh: THREE.Mesh;
   mat: THREE.ShaderMaterial;
   worldCenter: Point2D;
+  baseY: number;
   size: { w: number; h: number };
   links: BioLinkHitbox[];
   delaySec: number;
@@ -166,6 +167,14 @@ export class InkTreeScene {
   private activeBranch: BranchId | null = null;
   private hoveredId: string | null = null;
   private branchOpenElapsed = 0;
+
+  // Bio scroll state (when "me" is active and paragraphs exceed fold above ground)
+  private bioScrollY = 0;
+  private bioScrollTarget = 0;
+  private bioMaxScroll = 0;
+  private bioClipRange: [number, number] = [-99999, 99999];
+  private bioColBounds: { xMin: number; xMax: number } = { xMin: 99999, xMax: -99999 };
+  private draggingBio = false;
 
   // Camera state
   private camPos = new THREE.Vector2(0, 0);
@@ -351,7 +360,12 @@ export class InkTreeScene {
     return mat;
   }
 
-  private makeTextMat(tex: THREE.Texture, progress = 1, opacity = 1): THREE.ShaderMaterial {
+  private makeTextMat(
+    tex: THREE.Texture,
+    progress = 1,
+    opacity = 1,
+    clipY?: [number, number],
+  ): THREE.ShaderMaterial {
     const mat = this.track(
       new THREE.ShaderMaterial({
         vertexShader: INK_TEXT_VERT,
@@ -363,6 +377,7 @@ export class InkTreeScene {
           uProgress: { value: progress },
           uOpacity: { value: opacity },
           uInkColor: { value: INK_COLOR },
+          uClipY: { value: new THREE.Vector2(clipY?.[0] ?? -99999, clipY?.[1] ?? 99999) },
         },
       }),
     );
@@ -377,6 +392,11 @@ export class InkTreeScene {
     this.bioItems = [];
     this.photoItems = [];
     this.sharedMaterials = [];
+    this.bioScrollY = 0;
+    this.bioScrollTarget = 0;
+    this.bioMaxScroll = 0;
+    this.bioClipRange = [-99999, 99999];
+    this.bioColBounds = { xMin: 99999, xMax: -99999 };
   }
 
   private rebuildWorld() {
@@ -727,7 +747,7 @@ export class InkTreeScene {
             tipDy: 4,
             thorns: 2,
             seed: 404,
-            cameraTarget: { x: 148, y: -58, zoom: 0.90 },
+            cameraTarget: { x: 148, y: -50, zoom: 0.84 },
           },
         ]
       : [
@@ -777,7 +797,7 @@ export class InkTreeScene {
             tipDy: 5,
             thorns: 2,
             seed: 404,
-            cameraTarget: { x: 364, y: -70, zoom: 1.02 },
+            cameraTarget: { x: 425, y: -56, zoom: 0.92 },
           },
         ];
 
@@ -910,19 +930,22 @@ export class InkTreeScene {
     canopyMesh.position.z = 3.5;
     group.add(canopyMesh);
 
-    // Desktop me camera is { x: 364, y: -70, zoom: 1.02 }:
-    // screenX 33% -> worldLeft = +124; screenY 27% -> worldTop = +133
-    // Keep all 6 paragraphs cleanly inside y ≈ 27%..60% clear of grass & trunk
-    const bioMaxWidth = mobile ? 182 : 288;
-    const bioX = mobile ? extTip.x + 114 : 124 + bioMaxWidth * 0.5;
-    let cursorTopY = mobile ? extTip.y + 205 : 133;
-    const bioFontSize = mobile ? 11.2 : 11.4;
+    // Desktop me camera is { x: 425, y: -56, zoom: 0.92 }:
+    // screenX 33% -> worldLeft = +159; screenY 27% -> worldTop = +169
+    // Render ~15 CSS px, line-height ~1.58, ~305 CSS px column width; clip cleanly below p4 above ground
+    const bioMaxWidth = mobile ? 226 : 332;
+    const bioX = mobile ? 196 : 159 + bioMaxWidth * 0.5;
+    const bioStartTopY = mobile ? 268 : 169;
+    let cursorTopY = bioStartTopY;
+    const bioFontSize = mobile ? 14.2 : 16.3; // 16.3 * 0.92 ≈ 15.0 CSS px
+    const paraGap = mobile ? 11 : 15;
+    let p4BottomY = bioStartTopY - 260;
 
     BIO_PARAGRAPHS.forEach((p, idx) => {
       const rendered = createBioParagraphTexture(p, {
         maxWidth: bioMaxWidth,
         fontSize: bioFontSize,
-        lineHeightRatio: mobile ? 1.36 : 1.38,
+        lineHeightRatio: mobile ? 1.52 : 1.58,
       });
       this.track(rendered.texture);
       const geo = this.track(new THREE.PlaneGeometry(rendered.width, rendered.height));
@@ -936,21 +959,40 @@ export class InkTreeScene {
         mesh,
         mat,
         worldCenter: { x: bioX, y: cy },
+        baseY: cy,
         size: { w: rendered.width, h: rendered.height },
         links: rendered.links,
         delaySec: 0.24 + idx * 0.14,
       });
-      cursorTopY -= rendered.height + (mobile ? 5.5 : 7);
+      if (idx === 3) {
+        p4BottomY = cursorTopY - rendered.height;
+      }
+      cursorTopY -= rendered.height + paraGap;
     });
 
+    const bioClipTopY = bioStartTopY + 10;
+    const bioClipBottomY = mobile
+      ? Math.max(_groundY + 180, p4BottomY - 6)
+      : Math.max(_groundY + 88, p4BottomY - 8);
+    this.bioClipRange = [bioClipBottomY, bioClipTopY];
+    this.bioColBounds = {
+      xMin: bioX - bioMaxWidth * 0.5 - 24,
+      xMax: bioX + bioMaxWidth * 0.5 + 24,
+    };
+    const lastParaBottomY = cursorTopY + paraGap;
+    this.bioMaxScroll = Math.max(0, bioClipBottomY - lastParaBottomY + 10);
+    for (const item of this.bioItems) {
+      (item.mat.uniforms.uClipY.value as THREE.Vector2).set(bioClipBottomY, bioClipTopY);
+    }
+
     // Dispersed 2x2 overlapping halftone photo collage (~220x230px overall)
-    // Desktop screenX 58% -> worldLeft = +477; screenY 27% -> worldTop = +133
-    const deskScale = 0.88;
+    // Desktop screenX 58% -> worldLeft = +550; screenY 27% -> worldTop = +169
+    const deskScale = 0.95;
     const mobScale = 0.56;
     const photoScale = mobile ? mobScale : deskScale;
     const firstDispW = ME_PHOTOS[0].displayWidth * photoScale;
-    const photoBaseX = mobile ? bioX - 38 : 477 + firstDispW * 0.5;
-    const photoBaseY = mobile ? cursorTopY - 40 : 133 - firstDispW * 0.5;
+    const photoBaseX = mobile ? 148 : 550 + firstDispW * 0.5;
+    const photoBaseY = mobile ? bioClipBottomY - 56 : 169 - firstDispW * 0.5;
 
     ME_PHOTOS.forEach((photo, idx) => {
       const aspect = photo.height / photo.width;
@@ -1392,6 +1434,8 @@ export class InkTreeScene {
   public selectBranch(branchId: BranchId | null) {
     this.activeBranch = branchId;
     this.branchOpenElapsed = 0;
+    this.bioScrollY = 0;
+    this.bioScrollTarget = 0;
     if (branchId) {
       const b = this.branches.get(branchId);
       if (b) {
@@ -1480,6 +1524,7 @@ export class InkTreeScene {
         for (const link of item.links) {
           const lx = item.worldCenter.x + link.x;
           const ly = item.worldCenter.y + link.y;
+          if (ly < this.bioClipRange[0] + 4 || ly > this.bioClipRange[1] - 4) continue;
           if (
             Math.abs(wx - lx) <= link.w * 0.5 + 6 &&
             Math.abs(wy - ly) <= link.h * 0.5 + 4
@@ -1517,6 +1562,14 @@ export class InkTreeScene {
       this.dragStart.set(e.clientX, e.clientY);
       this.dragLast.set(e.clientX, e.clientY);
       this.camVel.set(0, 0);
+      const world = this.screenToWorld(e.clientX, e.clientY);
+      this.draggingBio =
+        this.activeBranch === 'me' &&
+        this.bioMaxScroll > 0 &&
+        world.x >= this.bioColBounds.xMin &&
+        world.x <= this.bioColBounds.xMax &&
+        world.y >= this.bioClipRange[0] - 24 &&
+        world.y <= this.bioClipRange[1] + 24;
       el.setPointerCapture?.(e.pointerId);
     };
 
@@ -1533,12 +1586,19 @@ export class InkTreeScene {
         const worldScale = this.worldW / Math.max(1, this.width) / this.camera.zoom;
         const dxW = -dxPx * worldScale;
         const dyW = dyPx * worldScale;
-        this.camTarget.x += dxW;
-        this.camTarget.y += dyW;
-        this.camPos.x += dxW * 0.85;
-        this.camPos.y += dyW * 0.85;
-        this.camVel.set(dxW * 16, dyW * 16);
-        this.clampCameraTarget();
+        if (this.draggingBio) {
+          this.bioScrollTarget = Math.max(
+            0,
+            Math.min(this.bioMaxScroll, this.bioScrollTarget - dyW),
+          );
+        } else {
+          this.camTarget.x += dxW;
+          this.camTarget.y += dyW;
+          this.camPos.x += dxW * 0.85;
+          this.camPos.y += dyW * 0.85;
+          this.camVel.set(dxW * 16, dyW * 16);
+          this.clampCameraTarget();
+        }
       }
 
       const hit = this.findHitAtWorld(world.x, world.y);
@@ -1555,6 +1615,7 @@ export class InkTreeScene {
     const onPointerUp = (e: PointerEvent) => {
       if (!this.isDragging) return;
       this.isDragging = false;
+      this.draggingBio = false;
       el.releasePointerCapture?.(e.pointerId);
 
       // Treat as a click if pointer moved < 7px
@@ -1570,6 +1631,17 @@ export class InkTreeScene {
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const worldScale = this.worldW / Math.max(1, this.width) / this.camera.zoom;
+      if (
+        this.activeBranch === 'me' &&
+        this.bioMaxScroll > 0 &&
+        Math.abs(e.deltaY) >= Math.abs(e.deltaX)
+      ) {
+        this.bioScrollTarget = Math.max(
+          0,
+          Math.min(this.bioMaxScroll, this.bioScrollTarget + e.deltaY * 0.85 * worldScale),
+        );
+        return;
+      }
       this.camTarget.x += e.deltaX * 0.65 * worldScale;
       this.camTarget.y -= e.deltaY * 0.65 * worldScale;
       this.clampCameraTarget();
@@ -1582,17 +1654,18 @@ export class InkTreeScene {
       this.tiltOffset.set(gamma * 0.55, -beta * 0.45);
     };
 
+    const wheelHost = this.container.parentElement ?? el;
     el.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
-    el.addEventListener('wheel', onWheel, { passive: false });
+    wheelHost.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('deviceorientation', onDeviceOrientation);
 
     this.unbindEvents = () => {
       el.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
-      el.removeEventListener('wheel', onWheel);
+      wheelHost.removeEventListener('wheel', onWheel);
       window.removeEventListener('deviceorientation', onDeviceOrientation);
     };
   }
@@ -1682,7 +1755,9 @@ export class InkTreeScene {
     if (this.activeBranch === 'me') {
       for (const item of this.bioItems) {
         for (const link of item.links) {
-          const ls = this.worldToScreen(item.worldCenter.x + link.x, item.worldCenter.y + link.y);
+          const ly = item.worldCenter.y + link.y;
+          if (ly < this.bioClipRange[0] + 4 || ly > this.bioClipRange[1] - 4) continue;
+          const ls = this.worldToScreen(item.worldCenter.x + link.x, ly);
           targets.push({
             id: `bio-link-${link.label}`,
             label: link.label,
@@ -1830,8 +1905,14 @@ export class InkTreeScene {
       }
     }
 
-    // Staggered bio paragraphs & taped halftone photos in "me"
+    // Staggered bio paragraphs & taped halftone photos in "me" + smooth vertical scroll
     const meOpen = this.activeBranch === 'me';
+    const bioScrollLerp = this.reducedMotion ? 1 : 1 - Math.exp(-12 * dt);
+    this.bioScrollY += (this.bioScrollTarget - this.bioScrollY) * bioScrollLerp;
+    if (Math.abs(this.bioScrollTarget - this.bioScrollY) < 0.05) {
+      this.bioScrollY = this.bioScrollTarget;
+    }
+
     for (const item of this.bioItems) {
       const prog = meOpen
         ? this.reducedMotion
@@ -1839,6 +1920,8 @@ export class InkTreeScene {
           : Math.max(0, Math.min(1, (this.branchOpenElapsed - item.delaySec) / 0.42))
         : 0;
       item.mat.uniforms.uProgress.value = prog;
+      item.worldCenter.y = item.baseY + this.bioScrollY;
+      item.mesh.position.y = item.worldCenter.y;
     }
 
     for (const ph of this.photoItems) {

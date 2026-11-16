@@ -412,16 +412,21 @@ uniform sampler2D uTex;
 uniform float uProgress;
 uniform float uOpacity;
 uniform vec3 uInkColor;
+uniform vec2 uClipY;
 ${GLSL_NOISE}
 
 void main() {
+  if (vWorld.y < uClipY.x || vWorld.y > uClipY.y) discard;
+
   vec4 texel = texture2D(uTex, vUv);
   if (texel.a < 0.03) discard;
 
+  float clipFadeBot = smoothstep(uClipY.x, uClipY.x + 14.0, vWorld.y);
+  float clipFadeTop = smoothstep(uClipY.y, uClipY.y - 10.0, vWorld.y);
   float grain = (vnoise(vWorld * 1.1) - 0.5) * 0.09;
-  // Ink-in reveal combines opacity + subtle spatial wipe
+  // Ink-in reveal combines opacity + subtle spatial wipe + vertical scroll clip
   float reveal = smoothstep(0.0, 0.85, uProgress);
-  float alpha = texel.a * reveal * uOpacity;
+  float alpha = texel.a * reveal * uOpacity * clipFadeBot * clipFadeTop;
   if (alpha < 0.02) discard;
 
   vec3 col = texel.rgb * (1.0 + grain);
