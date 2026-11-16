@@ -1,0 +1,16 @@
+src/tree/InkTreeScene.ts
+  h_05f32768e190e9 391,481,487,489-491,494,499-505,525,530,532-534,536,538,542,552-553,556
+src/tree/geometry.ts
+  h_05f32768e190e9 289-290,301,304,318,322,329-349,351,354-360,362-380,384-386,388-392,488,490-496,504
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "57c310fa0fb06c3025f4dd50a7291ec3a8225fb9",
+  "prompts": {},
+  "humans": {
+    "h_05f32768e190e9": {
+      "author": "huaiju <huaiju1210085279@gmail.com>"
+    }
+  }
+}
