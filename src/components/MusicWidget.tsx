@@ -55,7 +55,10 @@ export function MusicWidget({ showCaption }: MusicWidgetProps) {
   };
 
   return (
-    <div className="music-widget" aria-label="Ambient audio player">
+    <div
+      className={`music-widget ${showCaption ? '' : 'has-back'}`}
+      aria-label="Ambient audio player"
+    >
       <AnimatePresence>
         {showCaption && (
           <motion.div
@@ -66,25 +69,25 @@ export function MusicWidget({ showCaption }: MusicWidgetProps) {
             transition={{ duration: 0.25 }}
             aria-hidden="true"
           >
-            <div className="music-caption-text">
-              <span>{SITE_CONFIG.musicCaptionLines[0]}</span>
-              <span>{SITE_CONFIG.musicCaptionLines[1]}</span>
-            </div>
             <svg
               className="music-caption-arrow"
-              width="34"
-              height="26"
-              viewBox="0 0 34 26"
+              width="28"
+              height="28"
+              viewBox="0 0 28 28"
               fill="none"
             >
               <path
-                d="M27 3 C 18 6, 11 13, 8 22 M 4 17 L 7.8 22.8 L 13.5 19.5"
+                d="M24 5 C 12 6, 7 15, 11 24 M 6.5 20.5 L 11.2 25 L 15.2 19.6"
                 stroke="#c4c3cc"
-                strokeWidth="1.5"
+                strokeWidth="1.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
+            <div className="music-caption-text">
+              <span>{SITE_CONFIG.musicCaptionLines[0]}</span>
+              <span>{SITE_CONFIG.musicCaptionLines[1]}</span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -96,7 +99,16 @@ export function MusicWidget({ showCaption }: MusicWidgetProps) {
           onClick={handleTogglePlay}
           aria-label={isPlaying ? 'Pause ambient track' : 'Play ambient track'}
         >
-          {isPlaying ? '❚❚' : '▶'}
+          {isPlaying ? (
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+              <rect x="2" y="1.5" width="2" height="7" fill="currentColor" />
+              <rect x="6" y="1.5" width="2" height="7" fill="currentColor" />
+            </svg>
+          ) : (
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+              <path d="M2 1.2L8.8 5L2 8.8Z" fill="currentColor" />
+            </svg>
+          )}
         </button>
 
         <span
@@ -114,7 +126,21 @@ export function MusicWidget({ showCaption }: MusicWidgetProps) {
             aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
             title={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? '▽' : '▲'}
+            {isMuted ? (
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <path
+                  d="M5 2L8.6 8H1.4Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.25"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <path d="M5 1.8L8.8 8H1.2Z" fill="currentColor" />
+              </svg>
+            )}
           </button>
           <a
             className="music-btn"
@@ -124,7 +150,16 @@ export function MusicWidget({ showCaption }: MusicWidgetProps) {
             aria-label="Open track notes"
             title="Track notes"
           >
-            ↗
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+              <path
+                d="M2.2 7.8L7.8 2.2M3.6 2.2H7.8V6.4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.35"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </a>
           <button
             type="button"
@@ -133,7 +168,10 @@ export function MusicWidget({ showCaption }: MusicWidgetProps) {
             aria-label="Next ambient track"
             title="Next track"
           >
-            ⏭
+            <svg width="12" height="10" viewBox="0 0 12 10" aria-hidden="true">
+              <path d="M1 1.7L5.3 5L1 8.3Z M5.6 1.7L9.9 5L5.6 8.3Z" fill="currentColor" />
+              <rect x="10.2" y="1.8" width="1.2" height="6.4" fill="currentColor" />
+            </svg>
           </button>
         </div>
       </div>
