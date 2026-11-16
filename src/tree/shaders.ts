@@ -266,29 +266,29 @@ void main() {
   float scale = mix(0.20, 1.0, smoothstep(0.0, 1.0, uProgress));
   float effectiveR = r / scale + lump * 0.52;
 
-  // Interior dark voids & crevices so trunk/paper show through
-  float innerVoid = smoothstep(0.56, 0.72, macro * 0.62 + midGrain * 0.38);
-  float edgeBreak = (macro - 0.5) * 0.36 + (midGrain - 0.5) * 0.24 + (stipple - 0.5) * 0.20;
+  // Sparse interior voids & crevices so trunk/paper show at coves while clouds stay ~85% solid
+  float innerVoid = smoothstep(0.68, 0.84, macro * 0.65 + midGrain * 0.35);
+  float edgeBreak = (macro - 0.5) * 0.32 + (midGrain - 0.5) * 0.22 + (stipple - 0.5) * 0.16;
 
-  float field = effectiveR + edgeBreak + innerVoid * 0.56;
-  float thresh = mix(0.64, 0.80, uDensity);
+  float field = effectiveR + edgeBreak + innerVoid * 0.42;
+  float thresh = mix(0.72, 0.88, uDensity);
 
-  // High-contrast screen-print threshold: crisp bright ink vs open paper pinholes
-  float rimZone = smoothstep(thresh - 0.24, thresh + 0.04, field);
-  float ditherCut = mix(0.08, 0.82, rimZone);
+  // High-contrast screen-print threshold: solid ~85% core with crisp dithered edge rim
+  float rimZone = smoothstep(thresh - 0.18, thresh + 0.04, field);
+  float ditherCut = mix(0.03, 0.82, rimZone);
   float dotHit = step(ditherCut, stipple * 0.55 + speckle * 0.45);
 
   if (field > thresh + 0.05 || dotHit < 0.5) {
     discard;
   }
 
-  // Coarse small dark ink-void speckles scattered across the bright canopy (#c4c3cc)
-  if (speckle < 0.095 || (midGrain > 0.68 && speckle < 0.28)) {
+  // Coarse small dark ink-void pinholes (~10-14% interior breakup like silkscreen)
+  if (speckle < 0.055 || (midGrain > 0.74 && speckle < 0.22)) {
     discard;
   }
 
-  // Keep solid canopy dots bright #c4c3cc with subtle silkscreen tonal shimmer
-  float toneShift = (stipple - 0.45) * 0.035 + (macro - 0.5) * 0.02;
+  // Keep solid canopy ink bright #c4c3cc with subtle silkscreen shimmer
+  float toneShift = (stipple - 0.45) * 0.03 + (macro - 0.5) * 0.02;
   vec3 col = clamp(uInkColor + vec3(toneShift * 0.86, toneShift * 0.90, toneShift), 0.0, 1.0);
 
   float alpha = uOpacity * smoothstep(0.0, 0.22, uProgress);
@@ -334,7 +334,7 @@ void main() {
   vec2 innerUv = clamp((px - 2.4) / (uPhotoSize - 4.8), 0.0, 1.0);
   float rawLuma = texture2D(uTex, innerUv).r;
   // Higher contrast curve keeping overall halftone photo moody & dark
-  float luma = pow(clamp(rawLuma, 0.0, 1.0), 1.45);
+  float luma = pow(clamp(rawLuma, 0.0, 1.0), 1.25);
 
   // Coarse rotated halftone dot screen (pitch ~5.2px)
   float ang = 0.62;
@@ -343,15 +343,15 @@ void main() {
   vec2 cell = fract(grid) - 0.5;
   float cellNoise = (vnoise(floor(grid) * 0.85) - 0.5) * 0.18;
   float dotDist = length(cell);
-  float dotRadius = sqrt(clamp(luma, 0.02, 0.90)) * 0.56 + cellNoise * 0.22;
+  float dotRadius = sqrt(clamp(luma, 0.03, 0.92)) * 0.62 + cellNoise * 0.20;
   float halftone = 1.0 - smoothstep(dotRadius - 0.08, dotRadius + 0.05, dotDist);
 
   // Dark card stock (#17151a) vs crisp lavender halftone ink
   vec3 cardBg = vec3(0.090, 0.084, 0.102);
   float paperGrain = (vnoise(vWorld * 0.9) - 0.5) * 0.04;
-  vec3 inkCol = uInkColor * 0.95 + paperGrain;
+  vec3 inkCol = uInkColor * 0.96 + paperGrain;
 
-  vec3 col = mix(cardBg, inkCol, max(halftone * 0.86, frameBand * 0.62));
+  vec3 col = mix(cardBg, inkCol, max(halftone * 0.90, frameBand * 0.68));
   if (uHovered > 0.5) {
     col = mix(col, inkCol, 0.10);
   }
@@ -376,8 +376,8 @@ void main() {
   if (vUv.x < 0.03 + endTear || vUv.x > 0.97 + endTear) discard;
 
   float grain = (vnoise(vWorld * 0.9) - 0.5) * 0.06;
-  vec3 col = mix(vec3(0.165, 0.157, 0.173), uInkColor, 0.55) + grain;
-  float alpha = 0.42 * smoothstep(0.0, 0.4, uProgress);
+  vec3 col = mix(vec3(0.165, 0.157, 0.173), uInkColor, 0.72) + grain;
+  float alpha = 0.48 * smoothstep(0.0, 0.4, uProgress);
   gl_FragColor = vec4(col, alpha);
 }
 `;
