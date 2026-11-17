@@ -1,0 +1,16 @@
+.gitignore
+  h_05f32768e190e9 6
+LICENSE
+  h_05f32768e190e9 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9e23f90c57ca3bb3beaf36c4525a7ff76aba86bf",
+  "prompts": {},
+  "humans": {
+    "h_05f32768e190e9": {
+      "author": "huaiju <huaiju1210085279@gmail.com>"
+    }
+  }
+}
